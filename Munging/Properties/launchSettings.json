@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Munging": {
+      "commandName": "Project",
+      "commandLineArgs": "\"D:\\\\UIC\\\\CS 424 - Visual Analytics\\\\YouSpinMeRound\\\\Data\\\\1950-2017_all_tornadoes_prelim.csv\" \"D:\\\\UIC\\\\CS 424 - Visual Analytics\\\\YouSpinMeRound\\\\Data\\\\alldata.csv\""
+    }
+  }
+}

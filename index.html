@@ -31,6 +31,12 @@ Licence URI: http://www.os-templates.com/template-terms
           <a href="index.html">Home</a>
         </li>
         <li>
+          <a href="#team">Team</a>
+        </li>
+        <li>
+          <a href="#data">Data</a>
+        </li>
+        <li>
           <a href="status-reports.html">Status Reports</a>
         </li>
       </ul>
@@ -39,12 +45,13 @@ Licence URI: http://www.os-templates.com/template-terms
   <div class="wrapper bgded" style="background-image:url('images/01.png');">
     <div id="pageintro" class="hoc clear">
       <article>
-        <h3 class="heading">Tornadoes in Illinois</h3>
-        <p>Geospatial data visualization of tornado data from 1950-2016</p>
+        <h3 class="heading">Tornado Visualization</h3>
+        <p>Geospatial data visualization of
+          <br> tornado data from 1950-2016</p>
         <footer>
           <ul class="nospace inline pushright">
             <li>
-              <a class="btn" href="#">App Link Coming Soon</a>
+              <a class="btn" href="http://shiny.evl.uic.edu:3838/p3g1/">Application</a>
             </li>
             <li>
               <a class="btn inverse" href="https://github.com/vrevan2/YouSpinMeRound">View Code</a>
@@ -55,7 +62,7 @@ Licence URI: http://www.os-templates.com/template-terms
     </div>
   </div>
   <div class="wrapper row3">
-    <main class="hoc container clear">
+    <main class="hoc container clear" id="team">
       <!-- main body -->
       <div class="sectiontitle">
         <h6 class="heading">Team "R you Shiny"</h6>
@@ -107,7 +114,7 @@ Licence URI: http://www.os-templates.com/template-terms
       <div class="clear"></div>
     </main>
   </div>
-  <div class="wrapper bgded" style="background-image:url('images/demo/backgrounds/02.png');">
+  <!--<div class="wrapper bgded" style="background-image:url('images/demo/backgrounds/02.png');">
     <div class="hoc split clear">
       <section>
         <h2 class="heading">Diam suspendisse eleifend</h2>
@@ -126,29 +133,56 @@ Licence URI: http://www.os-templates.com/template-terms
         </footer>
       </section>
     </div>
-  </div>
-  <div class="wrapper row3">
-    <section class="hoc container clear">
+  </div>-->
+  <div class="wrapper row4">
+    <section class="hoc container clear" id="data">
       <div class="group">
         <div class="one_half first">
-          <p class="font-xs">Tristique senectus et netus</p>
-          <h6 class="heading font-x3">Consectetur accumsan habitant morbi</h6>
-          <p>Sapien etiam vulputate ligula eu felis blandit a efficitur ex consequat aenean id ornare lacus vitae condimentum
-            quam sed varius feugiat elit id tristique etiam non volutpat lorem nulla vitae venenatis augue at fermentum.</p>
-          <p>Et fames ac turpis egestas donec eget enim eu neque euismod mollis suspendisse malesuada sed quam ac [&hellip;]</p>
-          <footer>
-            <a href="#">Read More &raquo;</a>
-          </footer>
+          <p class="font-xs">Analysis and Munging</p>
+          <h6 class="heading font-x3">Data</h6>
+          <p>The core data about the tornadoes and their tracks, from 1950 to 2017, is available
+            <a href="http://www.spc.noaa.gov/wcm/index.html#data">here</a> with a description of the fields
+            <a href="http://www.spc.noaa.gov/wcm/data/SPC_severe_database_description.pdf">here</a>. In addition, we also used the National FIPS County Codes from
+            <a href="https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt">here</a>.
+          </p>
+          <ul>
+            <li>As of this writing, there are 63,690 records that represent 62,530 tornadoes.</li>
+            <li>Multiple records are used to represent tornadoes that cross state borders and/or more than four counties. In
+              this dataset, there are at most 4 records/up to 16 counties (1 instance) per tornado. Six instances have 3
+              records/up to 12 counties, and 107 instances have 2 records/up to 8 counties.</li>
+            <li>The times in the data are normalized to CST for all but 37 records. For the purpose of this experiment, we will
+              assume that they are all in CST.</li>
+            <li>Data for loss is represented in one of three ways.
+              <ul>
+                <li>1950-1995: 5 followed by the number of zeroes as the values in this cell (for example, a value of 4 represents
+                  a loss of up to $50,000),</li>
+                <li>1996-2015: value in millions, and</li>
+                <li>2016-2017: actual dollar value.</li>
+              </ul>
+              These have been normalized to the actual loss value. Inflation is not taken into account.</li>
+            <ul>Descrepancies noted and corrections applied:
+              <li>There are many instances where a continuation record is not placed right after the initial record. These have
+                been using an application.
+              </li>
+              <li>yr:om = 2001:56, 2002:506, 2010:252, and 2015:610626 have an erroneous extra records, which have been removed.</li>
+              <li>For yr:om = 2015:582218, the records were mis-ordered. It also interesting to note that it crosses statelines
+                between TX and OK multiple times.</li>
+              <li>For yr:om = 2001:592, NoOfStates was incorrectly set to 0, probably because FIPS1 is 0. This has been updated
+                to 1 State, and FIPS2 has been moved to FIPS1.</li>
+              <li>For yr:om = 2011:291657, ns:sn:sg 1:0:-9 changed to 1:1:1 since there is only 1 record for this instance.</li>
+              <li>Some counties are repeated multiple times within the same tornado instance. These have been deduplicated.</li>
+            </ul>
+          </ul>
         </div>
         <div class="one_half">
           <a href="#">
-            <img src="images/demo/480x360.png" alt="">
+            <img src="images/spc.png" alt="">
           </a>
         </div>
       </div>
     </section>
   </div>
-  <div class="wrapper bgded overlay" style="background-image:url('images/demo/backgrounds/03.png');">
+  <!--<div class="wrapper bgded overlay" style="background-image:url('images/demo/backgrounds/03.png');">
     <section class="hoc container clear">
       <div class="sectiontitle">
         <h6 class="heading">Elementum orci eu nisi porta</h6>
@@ -253,7 +287,7 @@ Licence URI: http://www.os-templates.com/template-terms
         </article>
       </div>
     </div>
-  </div>
+  </div>-->
   <a id="backtotop" href="#top">
     <i class="fa fa-chevron-up"></i>
   </a>
