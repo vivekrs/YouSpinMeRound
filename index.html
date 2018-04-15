@@ -161,14 +161,14 @@ Licence URI: http://www.os-templates.com/template-terms
               </ul>
               These have been normalized to the actual loss value. Inflation is not taken into account.</li>
             <li>There are many instances where a continuation record is not placed right after the initial record. These, and
-              other modifications, including generating year- and state-specific IDs, eliminating unnecessary columns, and the
-              dollar loss value calculation (above) have been applied using a C# application. Look in the
+              other modifications, including generating year- and state-specific IDs, eliminating unnecessary columns, and
+              the dollar loss value calculation (above) have been applied using a C# application. Look in the
               <b>Munging</b> folder in the codebase to view the list of modifications applied.</li>
             <li>Descrepancies noted and corrections applied:</li>
             <ul>
               <li>yr:om = 2001:56, 2002:506, 2010:252, and 2015:610626 have an erroneous extra records, which have been removed.</li>
-              <li>For yr:om = 2015:582218, the records were mis-ordered. It also interesting to note that it crosses statelines
-                between TX and OK multiple times.</li>
+              <li>For yr:om = 2015:582218, it also interesting to note that it crosses statelines between TX and OK multiple
+                times.</li>
               <li>For yr:om = 2001:592, NoOfStates was incorrectly set to 0, probably because FIPS1 is 0. This has been updated
                 to 1 State, and FIPS2 has been moved to FIPS1.</li>
               <li>For yr:om = 2011:291657, ns:sn:sg 1:0:-9 changed to 1:1:1 since there is only 1 record for this instance.</li>
