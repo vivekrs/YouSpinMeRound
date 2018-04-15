@@ -10,6 +10,7 @@ namespace Munging
     public class TornadoData
     {
         public string id { get; set; }
+        public int ctr { get; set; }
         public string om { get; set; }
         public int yr { get; set; }
         public int mo { get; set; }
@@ -50,7 +51,7 @@ namespace Munging
 
         public void UpdateData()
         {
-            id = yr + "-" + om + "-" + st;
+            id = yr + "-" + om + "-" + st + "-" + ctr;
             dollarloss = loss == "0" ? "NA" :
                 yr < 1996 ? "5" + new string('0', int.Parse(loss)) :
                 yr < 2016 ? $"{decimal.Parse(loss) * 1000000}" :
@@ -65,6 +66,7 @@ namespace Munging
         {
             AutoMap();
             Map(m => m.id).Ignore();
+            Map(m => m.ctr).Ignore();
             Map(m => m.fips).Ignore();
             Map(m => m.dollarloss).Ignore();
         }
@@ -75,6 +77,7 @@ namespace Munging
         public TornadoDataIgnoreFns()
         {
             AutoMap();
+            Map(m => m.ctr).Ignore();
             Map(m => m.om).Ignore();
             Map(m => m.tz).Ignore();
             Map(m => m.stn).Ignore();

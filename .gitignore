@@ -1,3 +1,5 @@
 /pages
 */demo
 /.vs
+*/bin
+*/obj

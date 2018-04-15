@@ -76,8 +76,15 @@ namespace Munging
         private void ProcessMultiInstance(IReadOnlyCollection<TornadoData> instance, int segment)
         {
             var states = instance.Where(r => r.sg == segment).ToList();
+            var stateCount = new Dictionary<string, int>();
             foreach (var state in states)
             {
+                if (stateCount.ContainsKey(state.st))
+                    stateCount[state.st]++;
+                else
+                    stateCount[state.st] = 1;
+
+                state.ctr = stateCount[state.st];
                 GetCounties(state, instance);
                 _result.Add(state);
             }
