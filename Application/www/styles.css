@@ -61,18 +61,33 @@ body {
   display: inline;
 }
 
+.filterContainer{
+   display: flex;
+  /*justify-content: center;*/
+  align-items: center;
+}
+
 .buttonGroup{
-  display: inline;
+  /*display: inline;*/
   float: right;
-  padding-top: 5vh;
+  /*padding-top: 5vh;*/
 }
 
 .colorFilter{
-  display: inline;
+  /*display: inline;*/
   float: right;
-  padding-top: 6vh;
+  /*padding-top: 6vh;*/
 }
 
+.doubleRule{
+  height: 3px;
+  border-top: 1px solid  #c7c7c7;
+  border-bottom: 1px solid  #c7c7c7;
+}
+
+#magGroup{
+  padding-left: 1.5vw;
+}
 
 
 @media(min-width: 2000px){
