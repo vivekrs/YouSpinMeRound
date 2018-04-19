@@ -1,98 +1,121 @@
 body {
-  font-size: 1.5vh;
+  font-size: 1.4vh;
   background-color: #c7c7c7;
   color: #c7c7c7;
+  box-sizing: border-box;
 }
 
 #nav {
   padding: 2vh;
 }
 
-.container-fluid{
-  padding-left: 0px;
-  padding-right: 0px;
+.container-fluid {
+  margin: 0;
+  padding: 0;
 }
 
-#outer-container {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr 1fr 1fr;
-  grid-template-rows: 0.1fr 1fr 1fr 1fr;
+#container {
   width: 100%;
+  background-color: gray;
+  display: grid;
+  grid-gap: 1em;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-areas: "controls mapOne mapOne mapOne"
+  "controls mapTwo mapTwo mapTwo"
+  "plotOne plotOne plotTwo plotTwo"
 }
 
-#sidebar{
-  grid-row: 2 / 5;
-  grid-column: 1 / 2;
-  background-color: #090909;
-  padding-left: 1.5vw;
-  padding-right: 1vw;
-  padding-top: 1vw;
+#controls {
+  display: block;
+  grid-area: controls;
+  background-color: darkslategray;
+  padding: 1em 1em 0 1em;
 }
 
-#header{
-  grid-row: 1 / 2;
-  grid-column: 1 / 5;
-  background-color: #090909;
-  padding-left: 1.5vw;
+.action_button {
+  background-color: darkslategray;
 }
 
-#plots{
-  grid-row: 4 / 5;
-  grid-column: 2 / 5;
+.filter-group {
+  padding: 0 1em;
 }
 
-#mapOne{
-  grid-row: 3 / 4;
-  grid-column: 2 / 5;
-  
-}
-
-#mapTwo{
-  grid-row: 2 / 3;
-  grid-column: 2 / 5;
-  margin-bottom: 10px;
-}
-
-#widthBtn, #colorBtn{
+#mapOne {
+  grid-area: mapOne;
   background-color: #090909;
 }
 
-.filterTitle{
-  display: inline;
+#mapTwo {
+  grid-area: mapTwo;
+  background-color: #090909;
 }
 
-.filterContainer{
-   display: flex;
-  /*justify-content: center;*/
-  align-items: center;
+#plotOne {
+  grid-area: plotOne;
+  background-color: #090909;
 }
 
-.buttonGroup{
-  /*display: inline;*/
+#plotTwo {
+  grid-area: plotTwo;
+  background-color: #090909;
+}
+
+.buttonGroup {
   float: right;
-  /*padding-top: 5vh;*/
 }
 
-.colorFilter{
-  /*display: inline;*/
-  float: right;
-  /*padding-top: 6vh;*/
-}
-
-.doubleRule{
-  height: 3px;
-  border-top: 1px solid  #c7c7c7;
-  border-bottom: 1px solid  #c7c7c7;
-}
-
-#magGroup{
-  padding-left: 1.5vw;
-}
-
-
-@media(min-width: 2000px){
-  #outer-container {
-    grid-template-columns: 1fr 1fr 1fr;
-    width: 100%;
+@media (min-width: 2000px) {
+  #container {
+    height: 100vh;
+    grid-template-columns: 6fr 7fr 7fr;
+    grid-template-rows: 1fr 4fr 4fr;
+    grid-template-areas:
+    "controls controls controls"
+    "plotOne mapOne mapTwo"
+    "plotTwo mapOne mapTwo"
+  }
+  #controls {
+    display: flex;
+    align-items: flex-start;
+  }
+  h1 {
+    font-size: 2vh;
+  }
+  h3 {
+    font-size: 1.5vh;
+  }
+  .shiny-input-container {
+    width: 600px !important;
+  }
+  .irs-grid-text {
+    font-size: 18px;
+  }
+  .filterContainer {
+    margin-top: -30px;
+  }
+  #magGroup {
+    width: auto;
+  }
+  #magGroup .shiny-options-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .action_button img {
+    height: 30px;
+  }
+  input[type=checkbox],  input[type=radio] {
+  /* Double-sized Checkboxes */
+  -ms-transform: scale(3); /* IE */
+  -moz-transform: scale(3); /* FF */
+  -webkit-transform: scale(3); /* Safari and Chrome */
+  -o-transform: scale(3); /* Opera */
+  padding: 10px;
+  margin: 10px;
+  }
+  .checkbox+.checkbox, .radio+.radio {
+    margin-top: 0;
+  }
+  .checkbox label span, .shiny-options-group label span {
+    padding: 0 1em;
   }
 }

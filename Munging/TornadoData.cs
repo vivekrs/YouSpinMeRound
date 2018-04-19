@@ -27,12 +27,16 @@ namespace Munging
         public string loss { get; set; }
         public string dollarloss { get; set; }
         public string closs { get; set; }
-        public string slat { get; set; }
-        public string slon { get; set; }
-        public string elat { get; set; }
-        public string elon { get; set; }
+        public double slat { get; set; }
+        public double slon { get; set; }
+        public double elat { get; set; }
+        public double elon { get; set; }
         public string len { get; set; }
+        public string lenkm { get; set; }
         public string wid { get; set; }
+        public string widm { get; set; }
+        public string chidist { get; set; }
+        public string chidistkm { get; set; }
         public int ns { get; set; }
         public int sn { get; set; }
         public int sg { get; set; }
@@ -57,6 +61,31 @@ namespace Munging
                 yr < 2016 ? $"{decimal.Parse(loss) * 1000000}" :
                 loss;
             fips = string.Join(';', fipsCodes.Distinct());
+
+            var chiDist = GetDistanceFromLatLonInKm(slat, slon, 41.881832, -87.623177);
+            chidistkm = string.Format("{0:0.00}", chiDist);
+            chidist = string.Format("{0:0.00}", chiDist * 0.6213712);
+
+            widm = string.Format("{0:0.00}", double.Parse(wid) * 0.9144);
+            lenkm = string.Format("{0:0.00}", double.Parse(len) * 1.609344);
+        }
+
+        private double GetDistanceFromLatLonInKm(double lat1, double lon1, double lat2, double lon2)
+        {
+            var R = 6371; // Radius of the earth in km
+            var dLat = Deg2Rad(lat2 - lat1);  // deg2rad below
+            var dLon = Deg2Rad(lon2 - lon1);
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(Deg2Rad(lat1)) * Math.Cos(Deg2Rad(lat2)) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            var d = R * c; // Distance in km
+            return d;
+        }
+
+        private double Deg2Rad(double deg)
+        {
+            return deg * (Math.PI / 180);
         }
     }
 
@@ -69,6 +98,10 @@ namespace Munging
             Map(m => m.ctr).Ignore();
             Map(m => m.fips).Ignore();
             Map(m => m.dollarloss).Ignore();
+            Map(m => m.chidistkm).Ignore();
+            Map(m => m.chidist).Ignore();
+            Map(m => m.widm).Ignore();
+            Map(m => m.lenkm).Ignore();
         }
     }
 
