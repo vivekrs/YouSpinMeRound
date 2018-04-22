@@ -213,24 +213,16 @@ server <- function(input, output, session) {
       ignoreNextMag <<- !ignoreNextMag
     }
     else{
-      print (c("Current:", input$magGroup))
-      print (c("Old:", magnitudesSelected))
       allInteraction <-
-        (allMag %in% magnitudesSelected &&
-           !(allMag %in% input$magGroup)) ||
-        (!(allMag %in% magnitudesSelected) &&
-           allMag %in% input$magGroup)
+        (allMag %in% magnitudesSelected && !(allMag %in% input$magGroup)) ||
+        (!(allMag %in% magnitudesSelected) && allMag %in% input$magGroup)
       
-      print (allInteraction)
       newMagnitudes <- c()
       if (allInteraction) {
-        newMagnitudes <- if (allMag %in% input$magGroup)
-          magnitudes
-        else
-          c()
+        newMagnitudes <- if (allMag %in% input$magGroup) magnitudes else c()
+        ignoreNextMag <<- TRUE
       }
       else {
-        print(length(input$magGroup[input$magGroup != allMag]) == length(magnitudes) - 1)
         if (length(input$magGroup[input$magGroup != allMag]) == length(magnitudes) - 1) {
           if (!(allMag %in% input$magGroup))
           {
@@ -250,11 +242,7 @@ server <- function(input, output, session) {
         }
       }
       
-      updateCheckboxGroupInput(session,
-                               'magGroup',
-                               choices = magnitudes,
-                               selected = newMagnitudes)
-      print(c("New:", newMagnitudes))
+      updateCheckboxGroupInput(session, 'magGroup', choices = magnitudes, selected = newMagnitudes)
       magnitudesSelected <<- newMagnitudes
     }
   })
