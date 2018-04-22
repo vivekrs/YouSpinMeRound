@@ -9,19 +9,31 @@ namespace Munging
 {
     public class TornadoData
     {
+        static Dictionary<int, string> magnitudes = new Dictionary<int, string>()
+        {
+            {-9, "Unknown"},
+            {0, "0 - Light"},
+            {1, "1 - Moderate"},
+            {2, "2 - Significant"},
+            {3, "3 - Severe"},
+            {4, "4 - Devastating"},
+            {5, "5 - Incredible"}
+        };
+
         public string id { get; set; }
         public int ctr { get; set; }
         public string om { get; set; }
         public int yr { get; set; }
         public int mo { get; set; }
         public int dy { get; set; }
+        public int hr { get; set; }
         public string date { get; set; }
         public string time { get; set; }
         public string tz { get; set; }
         public string st { get; set; }
         public string stf { get; set; }
         public int stn { get; set; }
-        public int mag { get; set; }
+        public string mag { get; set; }
         public int inj { get; set; }
         public int fat { get; set; }
         public string loss { get; set; }
@@ -56,6 +68,9 @@ namespace Munging
         public void UpdateData()
         {
             id = yr + "-" + om + "-" + st + "-" + ctr;
+            hr = int.Parse(time.Split(':')[0]);
+            if (int.TryParse(mag, out var m))
+                mag = magnitudes[m];
             dollarloss = loss == "0" ? "NA" :
                 yr < 1996 ? "5" + new string('0', int.Parse(loss)) :
                 yr < 2016 ? $"{decimal.Parse(loss) * 1000000}" :
@@ -89,13 +104,14 @@ namespace Munging
         }
     }
 
-    public sealed class TornadoDataIgnoreFips : CsvClassMap<TornadoData>
+    public sealed class TornadoDataReader : CsvClassMap<TornadoData>
     {
-        public TornadoDataIgnoreFips()
+        public TornadoDataReader()
         {
             AutoMap();
             Map(m => m.id).Ignore();
             Map(m => m.ctr).Ignore();
+            Map(m => m.hr).Ignore();
             Map(m => m.fips).Ignore();
             Map(m => m.dollarloss).Ignore();
             Map(m => m.chidistkm).Ignore();
@@ -105,13 +121,15 @@ namespace Munging
         }
     }
 
-    public sealed class TornadoDataIgnoreFns : CsvClassMap<TornadoData>
+    public sealed class TornadoDataWriter : CsvClassMap<TornadoData>
     {
-        public TornadoDataIgnoreFns()
+        public TornadoDataWriter()
         {
             AutoMap();
             Map(m => m.ctr).Ignore();
             Map(m => m.om).Ignore();
+            Map(m => m.date).Ignore();
+            Map(m => m.time).Ignore();
             Map(m => m.tz).Ignore();
             Map(m => m.stn).Ignore();
             Map(m => m.loss).Ignore();

@@ -25,7 +25,7 @@ namespace Munging
             using (TextReader inputFile = new StreamReader(inputFilename, Encoding.UTF8))
             {
                 var csv = new CsvReader(inputFile);
-                csv.Configuration.RegisterClassMap<TornadoDataIgnoreFips>();
+                csv.Configuration.RegisterClassMap<TornadoDataReader>();
                 var records = csv.GetRecords<TornadoData>();
                 var instances = records.GroupBy(r => new { r.yr, r.om });//.OrderBy(g=>g.Key);
 
@@ -61,7 +61,7 @@ namespace Munging
             using (TextWriter outputFile = new StreamWriter(outputFilename, false, Encoding.UTF8))
             {
                 var csv = new CsvWriter(outputFile);
-                csv.Configuration.RegisterClassMap<TornadoDataIgnoreFns>();
+                csv.Configuration.RegisterClassMap<TornadoDataWriter>();
                 csv.WriteRecords(_result);
             }
         }
