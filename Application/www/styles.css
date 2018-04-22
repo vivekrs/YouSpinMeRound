@@ -1,7 +1,8 @@
 body {
   font-size: 1.4vh;
-  background-color: black;
+  background-color: #f3f6f9;
   color: #c7c7c7;
+  /*color: black;*/
   box-sizing: border-box;
 }
 
@@ -16,7 +17,7 @@ body {
 
 #container {
   width: 100%;
-  background-color: gray;
+  background-color: #919191;
   display: grid;
   grid-gap: 1em;
   grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -26,12 +27,12 @@ body {
 #controls {
   display: block;
   grid-area: controls;
-  background-color: darkslategray;
+  background-color: #262626;
   padding: 1em 1em 0 1em;
 }
 
 .action_button {
-  background-color: darkslategray;
+  background-color: #262626;
 }
 
 .about_button {
@@ -61,7 +62,8 @@ body {
 
 .checkbox label span,
 .shiny-options-group label span {
-  padding: 0 1em;
+  padding: 0 2em;
+  white-space: nowrap;
 }
 
 #mapOne {
@@ -86,6 +88,25 @@ body {
 
 .buttonGroup {
   float: right;
+  max-width: 150px;
+  margin-top: 10px;
+}
+.buttonGroup div{
+  display: inline;
+}
+
+.colorButton{
+  float: right;
+  max-width: 20px;
+  margin-top: 10px;
+}
+
+h3{
+  display: inline;
+}
+
+.form-group{
+  margin-bottom: 25px;
 }
 
 .action_button img {
@@ -97,16 +118,42 @@ body {
   color: #c7c7c7;
 }
 
+#about{
+  font-size: 25px;
+  color: #fff;
+  background-color: #262626;
+  border-color: #262626;
+  padding: 0px;
+  float: right;
+}
+
+#magnitudeDiv div:nth-child(1){
+  margin-bottom: -6px;
+}
+#magnitudeDiv #magGroup .shiny-options-group div:nth-child(1){
+  margin-top: 6px;
+  margin-bottom: 7px;
+}
+
+
+/*Wall styles*/
 @media (min-width: 2000px) {
   #container {
     height: 100vh;
     grid-template-columns: 6fr 7fr 7fr;
+    padding-bottom: 1em;
     grid-template-rows: 1fr 4fr 4fr;
     grid-template-areas: "controls controls controls" "plotOne mapOne mapTwo" "plotTwo mapOne mapTwo"
   }
   #controls {
     display: flex;
     align-items: flex-start;
+  }
+  #mapTwo{
+    margin-right: 1em;
+  }
+  #plotOne, #plotTwo{
+    margin-left: 1em;
   }
   h1 {
     font-size: 2vh;
@@ -123,21 +170,59 @@ body {
   .filterContainer {
     margin-top: -30px;
   }
-  .action_button img {
-    height: 30px;
+
+  .buttonGroup div{
+    margin-top: 10px;
   }
-  input[type=checkbox],
-  input[type=radio] {
-    /* Double-sized Checkboxes */
-    -ms-transform: scale(3);
-    /* IE */
-    -moz-transform: scale(3);
-    /* FF */
-    -webkit-transform: scale(3);
-    /* Safari and Chrome */
-    -o-transform: scale(3);
-    /* Opera */
-    padding: 10px;
-    margin: 10px;
+  #magGroup {
+    width: auto;
   }
+  #magGroup .shiny-options-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  #magGroup .shiny-options-group div:nth-child(2){
+      height: 46px;
+      padding-top: 22px;
+  }
+
+  input[type=checkbox],  input[type=radio] {
+  /* Double-sized Checkboxes */
+  -ms-transform: scale(3); /* IE */
+  -moz-transform: scale(3); /* FF */
+  -webkit-transform: scale(3); /* Safari and Chrome */
+  -o-transform: scale(3); /* Opera */
+  padding: 10px;
+  margin: 10px;
+  }
+  .checkbox+.checkbox, .radio+.radio {
+    margin-top: 0;
+  }
+  .checkbox label span, .shiny-options-group label span {
+    padding: 0 1em;
+    line-height: 2px;
+  }
+  #about{
+    font-size: 35px;
+  }
+  .modal-content{
+    padding: 30px;
+  }
+  #magnitudeDiv div:nth-child(1){
+    margin-bottom: -50px;
+    padding-top: 20px;
+  }
+  #mapOne .leaflet-control-container .leaflet-right, #mapTwo .leaflet-control-container .leaflet-right{
+    font-size: 25px;
+  }
+  #mapOne .leaflet-control-layers-base, #mapTwo .leaflet-control-layers-base {
+    padding: 15px;
+  }
+
 }
+
+
+
+
+
+

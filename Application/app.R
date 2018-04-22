@@ -1,6 +1,8 @@
 library(shiny)
 library(leaflet)
 library(shinyjs)
+library(shinyWidgets)
+
 
 getStates <- function() {
   data <- read.csv("data/statenames.csv", fileEncoding = "UTF-8-BOM")
@@ -12,26 +14,56 @@ states <- getStates()
 data <- read.csv("data/alldata.csv", fileEncoding = "UTF-8-BOM")
 magnitudes <- c(levels(data$mag), "All")
 
+
+
 #creates button group for filtering based on color/width
-createButtonGroup <- function() {
-  div(
+createButtonGroup <- function(filter_id) {
+  div( 
     class = "buttonGroup",
-    tags$button(class = "btn action_button",
-                img(class = "colorBtnImg",
-                    src = "images/color.png")),
-    tags$button(
-      type = "button",
-      class = "btn action_button",
-      img(class = "widthBtnImg",
-          src = "images/width_white.png")
+    # tags$button(class = "btn action_button",
+    #             img(class = "colorBtnImg",
+    #                 src = "images/color.png")),
+    # tags$button(
+    #   type = "button",
+    #   class = "btn action_button",
+    #   img(class = "widthBtnImg",
+    #       src = "images/width_white.png")
+    # )
+    prettyToggle(
+      inputId = filter_id,
+      label_on = "", label_off="",
+      # animation = 'pulse',
+      icon_on = icon("bars",lib = "font-awesome"),
+      icon_off = icon("bars", lib = "font-awesome"),
+      status_on = "primary", status_off = "default",
+      shape = "square", outline = TRUE
+    ),
+    prettyToggle(
+      # inputId = paste("colorFilter", filter_id),
+      inputId = filter_id,
+      label_on = "", label_off="",
+      # animation = 'pulse',
+      icon_on = icon("tint"),
+      icon_off = icon("tint"),
+      status_on = "primary", status_off = "default",
+      shape = "round", outline = TRUE
     )
   )
 }
 createColorButtonGroup <- function() {
-  div(class = "buttonGroup",
-      tags$button(class = "btn action_button",
-                  img(class = "colorBtnImg",
-                      src = "images/color.png")))
+  # div(class = "buttonGroup",
+  #     tags$button(class = "btn action_button",
+  #                 img(class = "colorBtnImg",
+  #                     src = "images/color.png")))
+  div(class = "colorButton",
+      prettyToggle(
+        inputId = "colorFilter", label_on = "", label_off="",
+        # animation = 'pulse',
+        icon_on = icon("tint"),
+        icon_off = icon("tint"),
+        status_on = "primary", status_off = "default",
+        shape = "round", outline = TRUE
+      ) )
 }
 
 ui <- fluidPage(
@@ -71,6 +103,28 @@ ui <- fluidPage(
       div(class = "spacer"),    
       div(
         class = "filter-group",
+        # createButtonGroup('Magnitude'),
+        div( class = "buttonGroup",
+             prettyToggle(
+               inputId = "magnitudeWidthFilter",
+               label_on = "", label_off="",
+               # animation = 'pulse',
+               icon_on = icon("bars",lib = "font-awesome"),
+               icon_off = icon("bars", lib = "font-awesome"),
+               status_on = "primary", status_off = "default",
+               shape = "square", outline = TRUE
+             ),
+             prettyToggle(
+               inputId = "magnitudeColorFilter",
+               # getColorParameters
+               label_on = "", label_off="",
+               # animation = 'pulse',
+               icon_on = icon("tint"),
+               icon_off = icon("tint"),
+               status_on = "primary", status_off = "default",
+               shape = "round", outline = TRUE
+             )
+        ),
         h3("Magnitude"),
         div(
           id = "magnitudeDiv",
@@ -99,14 +153,14 @@ ui <- fluidPage(
       
       div(
         class = "filter-group",        
-        createButtonGroup(),
+        createButtonGroup('distance'),
         h3("Distance from Chicago"),
         div(
           class = "filterContainer",
           sliderInput("distanceSlider", "", min = 0, max = 4500, value = c(0, 4500))
         ),
 
-        createButtonGroup(),
+        createButtonGroup('loss'),
         h3("Loss"),
         div(
           class = "filterContainer",
@@ -116,7 +170,7 @@ ui <- fluidPage(
       
       div(
         class = "filter-group",
-        createButtonGroup(),
+        createButtonGroup('injuries'),
         h3("Injuries"),
         div(
           class = "filterContainer",
@@ -124,7 +178,7 @@ ui <- fluidPage(
           )
         ),
         
-        createButtonGroup(),
+        createButtonGroup('fatalities'),
         h3("Fatalities"),
         div(
           class = "filterContainer",
@@ -155,6 +209,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
+  
   #show about page
   observeEvent(input$aboutButton, {
     showModal(
@@ -174,19 +229,43 @@ server <- function(input, output, session) {
     )
   })
   
-  # output$samplePlot <- renderPlot({hist(rnorm(100))})
+  # observeEvent(input$magnitudeColorFilter, {
+  #   print(input$magnitudeColorFilter)
+  # })
+  
+  # observe({
+  #   updateCheckboxGroupInput(
+  #     session, 'magGroup', choices = magnitudes,
+  #     selected = if (input$allNone) magnitudes
+  #   )
+  # })
+  # 
   output$sampleMap1 <-  renderLeaflet({
     leaflet() %>%
-      addProviderTiles(providers$CartoDB.DarkMatter,
-                       options = providerTileOptions(noWrap = TRUE)) %>%
+      addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
+      addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
+      addProviderTiles(providers$Esri.WorldImagery, group = 'Satellite') %>%
+      addProviderTiles(providers$Esri.WorldGrayCanvas, group = 'Minimal') %>%
+      addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
+      addLayersControl(
+        baseGroups = c("Dark","Light", "Satellite", "Minimal", "Colorblind Safe"),
+        options = layersControlOptions(collapsed = FALSE)
+      ) %>%
       setView(lat = 41.881832,
               lng = -87.623177,
               zoom = 4)
   })
   output$sampleMap2 <-  renderLeaflet({
     leaflet() %>%
-      addProviderTiles(providers$CartoDB.DarkMatter,
-                       options = providerTileOptions(noWrap = TRUE)) %>%
+      addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
+      addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
+      addProviderTiles(providers$Esri.WorldImagery, group = 'Satellite') %>%
+      addProviderTiles(providers$Esri.WorldGrayCanvas, group = 'Minimal') %>%
+      addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
+      addLayersControl(
+        baseGroups = c("Dark","Light", "Satellite", "Minimal", "Colorblind Safe"),
+        options = layersControlOptions(collapsed = FALSE)
+      ) %>%
       setView(lat = 41.881832,
               lng = -87.623177,
               zoom = 4)
