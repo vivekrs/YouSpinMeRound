@@ -9,7 +9,7 @@ namespace Munging
 {
     public class TornadoData
     {
-        static Dictionary<int, string> magnitudes = new Dictionary<int, string>()
+        private static readonly Dictionary<int, string> magnitudes = new Dictionary<int, string>
         {
             {-9, "Unknown"},
             {0, "0 - Light"},
@@ -18,6 +18,60 @@ namespace Munging
             {3, "3 - Severe"},
             {4, "4 - Devastating"},
             {5, "5 - Incredible"}
+        };
+        public static HashSet<string> states = new HashSet<string>
+        {
+            "AL",
+            "AK",
+            "AZ",
+            "AR",
+            "CA",
+            "CO",
+            "CT",
+            "DE",
+            "DC",
+            "FL",
+            "GA",
+            "HI",
+            "ID",
+            "IL",
+            "IN",
+            "IA",
+            "KS",
+            "KY",
+            "LA",
+            "ME",
+            "MD",
+            "MA",
+            "MI",
+            "MN",
+            "MS",
+            "MO",
+            "MT",
+            "NE",
+            "NV",
+            "NH",
+            "NJ",
+            "NM",
+            "NY",
+            "NC",
+            "ND",
+            "OH",
+            "OK",
+            "OR",
+            "PA",
+            "RI",
+            "SC",
+            "SD",
+            "TN",
+            "TX",
+            "UT",
+            "VT",
+            "VA",
+            "WA",
+            "WV",
+            "WI",
+            "WY"
         };
 
         public string id { get; set; }
@@ -62,7 +116,7 @@ namespace Munging
 
         public IEnumerable<int> GetFipsCodes()
         {
-            return new[] { f1, f2, f3, f4 }.Where(f => f != 0);
+            return new[] {f1, f2, f3, f4}.Where(f => f != 0);
         }
 
         public void UpdateData()
@@ -88,7 +142,7 @@ namespace Munging
         private double GetDistanceFromLatLonInKm(double lat1, double lon1, double lat2, double lon2)
         {
             var R = 6371; // Radius of the earth in km
-            var dLat = Deg2Rad(lat2 - lat1);  // deg2rad below
+            var dLat = Deg2Rad(lat2 - lat1); // deg2rad below
             var dLon = Deg2Rad(lon2 - lon1);
             var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
                     Math.Cos(Deg2Rad(lat1)) * Math.Cos(Deg2Rad(lat2)) *

@@ -1,6 +1,6 @@
 body {
   font-size: 1.4vh;
-  background-color: #c7c7c7;
+  background-color: black;
   color: #c7c7c7;
   box-sizing: border-box;
 }
@@ -20,9 +20,7 @@ body {
   display: grid;
   grid-gap: 1em;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  grid-template-areas: "controls mapOne mapOne mapOne"
-  "controls mapTwo mapTwo mapTwo"
-  "plotOne plotOne plotTwo plotTwo"
+  grid-template-areas: "controls mapOne mapOne mapOne" "controls mapTwo mapTwo mapTwo" "plotOne plotOne plotTwo plotTwo"
 }
 
 #controls {
@@ -36,7 +34,33 @@ body {
   background-color: darkslategray;
 }
 
+.about_button {
+  float: right;
+}
+
 .filter-group {
+  clear: both;
+  padding: 0 1em;
+}
+
+.spacer {
+  border: solid whitesmoke thin;
+  clear: both;
+  align-self: stretch;
+  margin: 1em;
+}
+
+#magGroup .shiny-options-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.checkbox:nth-child(2) {
+  margin-top: 10px;
+}
+
+.checkbox label span,
+.shiny-options-group label span {
   padding: 0 1em;
 }
 
@@ -64,15 +88,21 @@ body {
   float: right;
 }
 
+.action_button img {
+  height: 20px;
+}
+
+.irs-min,
+.irs-max {
+  color: #c7c7c7;
+}
+
 @media (min-width: 2000px) {
   #container {
     height: 100vh;
     grid-template-columns: 6fr 7fr 7fr;
     grid-template-rows: 1fr 4fr 4fr;
-    grid-template-areas:
-    "controls controls controls"
-    "plotOne mapOne mapTwo"
-    "plotTwo mapOne mapTwo"
+    grid-template-areas: "controls controls controls" "plotOne mapOne mapTwo" "plotTwo mapOne mapTwo"
   }
   #controls {
     display: flex;
@@ -85,7 +115,7 @@ body {
     font-size: 1.5vh;
   }
   .shiny-input-container {
-    width: 600px !important;
+    width: 610px !important;
   }
   .irs-grid-text {
     font-size: 18px;
@@ -93,29 +123,21 @@ body {
   .filterContainer {
     margin-top: -30px;
   }
-  #magGroup {
-    width: auto;
-  }
-  #magGroup .shiny-options-group {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
   .action_button img {
     height: 30px;
   }
-  input[type=checkbox],  input[type=radio] {
-  /* Double-sized Checkboxes */
-  -ms-transform: scale(3); /* IE */
-  -moz-transform: scale(3); /* FF */
-  -webkit-transform: scale(3); /* Safari and Chrome */
-  -o-transform: scale(3); /* Opera */
-  padding: 10px;
-  margin: 10px;
-  }
-  .checkbox+.checkbox, .radio+.radio {
-    margin-top: 0;
-  }
-  .checkbox label span, .shiny-options-group label span {
-    padding: 0 1em;
+  input[type=checkbox],
+  input[type=radio] {
+    /* Double-sized Checkboxes */
+    -ms-transform: scale(3);
+    /* IE */
+    -moz-transform: scale(3);
+    /* FF */
+    -webkit-transform: scale(3);
+    /* Safari and Chrome */
+    -o-transform: scale(3);
+    /* Opera */
+    padding: 10px;
+    margin: 10px;
   }
 }

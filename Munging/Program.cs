@@ -27,7 +27,9 @@ namespace Munging
                 var csv = new CsvReader(inputFile);
                 csv.Configuration.RegisterClassMap<TornadoDataReader>();
                 var records = csv.GetRecords<TornadoData>();
-                var instances = records.GroupBy(r => new { r.yr, r.om });//.OrderBy(g=>g.Key);
+                var instances = records
+                    .Where(r=>TornadoData.states.Contains(r.st))
+                    .GroupBy(r => new { r.yr, r.om });//.OrderBy(g=>g.Key);
 
                 foreach (var instance in instances)
                 {
