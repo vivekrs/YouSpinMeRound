@@ -12,7 +12,11 @@ getStates <- function() {
 states <- getStates()
 
 data <- read.csv("data/alldata.csv", fileEncoding = "UTF-8-BOM")
-magnitudes <- c(levels(data$mag), "All")
+
+allMag <- c("All")
+magnitudes <- c(levels(data$mag), allMag)
+magnitudesSelected <- c()
+ignoreNextMag <- FALSE
 
 #creates button group for filtering based on color/width
 createButtonGroup <- function(filter_id) {
@@ -203,13 +207,58 @@ server <- function(input, output, session) {
     print(input$magGroup)
   })
   
-  # observe({
-  #   updateCheckboxGroupInput(
-  #     session, 'magGroup', choices = magnitudes,
-  #     selected = if (input$allNone) magnitudes
-  #   )
-  # })
-
+  observe({
+    if (ignoreNextMag) {
+      magnitudesSelected <<- input$magGroup
+      ignoreNextMag <<- !ignoreNextMag
+    }
+    else{
+      print (c("Current:", input$magGroup))
+      print (c("Old:", magnitudesSelected))
+      allInteraction <-
+        (allMag %in% magnitudesSelected &&
+           !(allMag %in% input$magGroup)) ||
+        (!(allMag %in% magnitudesSelected) &&
+           allMag %in% input$magGroup)
+      
+      print (allInteraction)
+      newMagnitudes <- c()
+      if (allInteraction) {
+        newMagnitudes <- if (allMag %in% input$magGroup)
+          magnitudes
+        else
+          c()
+      }
+      else {
+        print(length(input$magGroup[input$magGroup != allMag]) == length(magnitudes) - 1)
+        if (length(input$magGroup[input$magGroup != allMag]) == length(magnitudes) - 1) {
+          if (!(allMag %in% input$magGroup))
+          {
+            newMagnitudes = c(input$magGroup, allMag)
+            ignoreNextMag <<- TRUE
+          }
+          else
+            newMagnitudes = input$magGroup
+        }
+        else{
+          if (allMag %in% input$magGroup) {
+            newMagnitudes = input$magGroup[input$magGroup != allMag]
+            ignoreNextMag <<- TRUE
+          }
+          else
+            newMagnitudes = input$magGroup
+        }
+      }
+      
+      updateCheckboxGroupInput(session,
+                               'magGroup',
+                               choices = magnitudes,
+                               selected = newMagnitudes)
+      print(c("New:", newMagnitudes))
+      magnitudesSelected <<- newMagnitudes
+    }
+  })
+  
   output$sampleMap1 <-  renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%

@@ -62,7 +62,7 @@ body {
 
 .checkbox label span,
 .shiny-options-group label span {
-  padding: 0 2em;
+  padding: 0 1em;
   white-space: nowrap;
 }
 
@@ -127,15 +127,6 @@ h3{
   float: right;
 }
 
-#magnitudeDiv div:nth-child(1){
-  margin-bottom: -6px;
-}
-#magnitudeDiv #magGroup .shiny-options-group div:nth-child(1){
-  margin-top: 6px;
-  margin-bottom: 7px;
-}
-
-
 /*Wall styles*/
 @media (min-width: 2000px) {
   #container {
@@ -181,10 +172,6 @@ h3{
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
-  #magGroup .shiny-options-group div:nth-child(2){
-      height: 46px;
-      padding-top: 22px;
-  }
 
   input[type=checkbox],  input[type=radio] {
   /* Double-sized Checkboxes */
@@ -194,9 +181,6 @@ h3{
   -o-transform: scale(3); /* Opera */
   padding: 10px;
   margin: 10px;
-  }
-  .checkbox+.checkbox, .radio+.radio {
-    margin-top: 0;
   }
   .checkbox label span, .shiny-options-group label span {
     padding: 0 1em;
