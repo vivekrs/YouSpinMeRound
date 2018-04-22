@@ -2,6 +2,8 @@ library(shiny)
 library(leaflet)
 library(shinyjs)
 library(shinyWidgets)
+library(dplyr)
+library(plotly)
 
 
 getStates <- function() {
@@ -51,6 +53,34 @@ createColorButtonGroup <- function(filter_id) {
         status_on = "primary", status_off = "default",
         shape = "round", outline = TRUE
       ) )
+}
+
+getMagChart<- function() {
+  # x<-switch (chartBy,
+  #            'year' = 'yr',
+  #            'month' = 'mo',
+  #            'hour' = 'hr',
+  #            'dist' = '~chidist'
+  # )
+  
+  yrcount<-subset(data, st=='IL') %>% count(yr, mag) %>% group_by(yr) %>% mutate(percent = n/sum(n))
+  
+  updatemenus <-list(
+    list(
+      type = 'buttons',
+      buttons = list(
+        list(method = "restyle",
+             args = list("y", list(data$n)),  # put it in a list
+             label = "Show Number"),
+        list(method = "restyle",
+             args = list("y", list(data$percent*100)),  # put it in a list
+             label = "Show Percent")))
+  )
+  
+  # plot_ly(data, type = 'bar', x = ~get(x), y = ~n, marker = list(color = ~mag, showscale = TRUE)) %>% 
+  #   layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus)
+  plot_ly(yrcount, type = 'bar', x = ~yr, y = ~n, marker = list(color = ~mag, showscale = TRUE)) %>% 
+    layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus)
 }
 
 ui <- fluidPage(
@@ -277,6 +307,7 @@ server <- function(input, output, session) {
               lng = -87.623177,
               zoom = 4)
   })
+  output$samplePlot1<-renderPlot({getMagChart()})
 }
 
 shinyApp(ui = ui, server = server)
