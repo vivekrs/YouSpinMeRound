@@ -14,23 +14,12 @@ states <- getStates()
 data <- read.csv("data/alldata.csv", fileEncoding = "UTF-8-BOM")
 magnitudes <- c(levels(data$mag), "All")
 
-
-
 #creates button group for filtering based on color/width
 createButtonGroup <- function(filter_id) {
   div( 
     class = "buttonGroup",
-    # tags$button(class = "btn action_button",
-    #             img(class = "colorBtnImg",
-    #                 src = "images/color.png")),
-    # tags$button(
-    #   type = "button",
-    #   class = "btn action_button",
-    #   img(class = "widthBtnImg",
-    #       src = "images/width_white.png")
-    # )
     prettyToggle(
-      inputId = filter_id,
+      inputId = paste(filter_id , "Width", sep=""),
       label_on = "", label_off="",
       # animation = 'pulse',
       icon_on = icon("bars",lib = "font-awesome"),
@@ -39,10 +28,8 @@ createButtonGroup <- function(filter_id) {
       shape = "square", outline = TRUE
     ),
     prettyToggle(
-      # inputId = paste("colorFilter", filter_id),
-      inputId = filter_id,
+      inputId = paste(filter_id , "Color", sep=""),
       label_on = "", label_off="",
-      # animation = 'pulse',
       icon_on = icon("tint"),
       icon_off = icon("tint"),
       status_on = "primary", status_off = "default",
@@ -50,15 +37,11 @@ createButtonGroup <- function(filter_id) {
     )
   )
 }
-createColorButtonGroup <- function() {
-  # div(class = "buttonGroup",
-  #     tags$button(class = "btn action_button",
-  #                 img(class = "colorBtnImg",
-  #                     src = "images/color.png")))
+createColorButtonGroup <- function(filter_id) {
   div(class = "colorButton",
       prettyToggle(
-        inputId = "colorFilter", label_on = "", label_off="",
-        # animation = 'pulse',
+        inputId = paste(filter_id , "Color", sep=""), 
+        label_on = "", label_off="",
         icon_on = icon("tint"),
         icon_off = icon("tint"),
         status_on = "primary", status_off = "default",
@@ -103,28 +86,7 @@ ui <- fluidPage(
       div(class = "spacer"),    
       div(
         class = "filter-group",
-        # createButtonGroup('Magnitude'),
-        div( class = "buttonGroup",
-             prettyToggle(
-               inputId = "magnitudeWidthFilter",
-               label_on = "", label_off="",
-               # animation = 'pulse',
-               icon_on = icon("bars",lib = "font-awesome"),
-               icon_off = icon("bars", lib = "font-awesome"),
-               status_on = "primary", status_off = "default",
-               shape = "square", outline = TRUE
-             ),
-             prettyToggle(
-               inputId = "magnitudeColorFilter",
-               # getColorParameters
-               label_on = "", label_off="",
-               # animation = 'pulse',
-               icon_on = icon("tint"),
-               icon_off = icon("tint"),
-               status_on = "primary", status_off = "default",
-               shape = "round", outline = TRUE
-             )
-        ),
+        createButtonGroup('magnitudeFilter'),
         h3("Magnitude"),
         div(
           id = "magnitudeDiv",
@@ -135,7 +97,7 @@ ui <- fluidPage(
       
       div(
         class = "filter-group",
-        createColorButtonGroup(),
+        createColorButtonGroup("widthFilter"),
         h3("Width"),
         div(
           id = "widthDiv",
@@ -143,7 +105,7 @@ ui <- fluidPage(
           sliderInput("widthSlider", "", min = 0, max = 5000, value = c(0, 5000))
         ),
         
-        createColorButtonGroup(),
+        createColorButtonGroup("lengthFilter"),
         h3("Length"),
         div(
           class = "filterContainer",
@@ -153,7 +115,7 @@ ui <- fluidPage(
       
       div(
         class = "filter-group",        
-        createButtonGroup('distance'),
+        createButtonGroup('distanceFilter'),
         h3("Distance from Chicago"),
         div(
           class = "filterContainer",
@@ -170,7 +132,7 @@ ui <- fluidPage(
       
       div(
         class = "filter-group",
-        createButtonGroup('injuries'),
+        createButtonGroup('injuriesFilter'),
         h3("Injuries"),
         div(
           class = "filterContainer",
@@ -178,7 +140,7 @@ ui <- fluidPage(
           )
         ),
         
-        createButtonGroup('fatalities'),
+        createButtonGroup('fatalitiesFilter'),
         h3("Fatalities"),
         div(
           class = "filterContainer",
@@ -229,9 +191,17 @@ server <- function(input, output, session) {
     )
   })
   
-  # observeEvent(input$magnitudeColorFilter, {
-  #   print(input$magnitudeColorFilter)
-  # })
+  observeEvent(input$widthFilterColor, {
+    print(input$widthFilterColor)
+  })
+  
+  observeEvent(input$magnitudeFilterWidth, {
+    print(input$magnitudeFilterWidth)
+  })
+  
+  observeEvent(input$magGroup, {
+    print(input$magGroup)
+  })
   
   # observe({
   #   updateCheckboxGroupInput(
@@ -239,7 +209,7 @@ server <- function(input, output, session) {
   #     selected = if (input$allNone) magnitudes
   #   )
   # })
-  # 
+
   output$sampleMap1 <-  renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
