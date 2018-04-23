@@ -5,6 +5,8 @@ library(shinyWidgets)
 library(dplyr)
 library(plotly)
 
+colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor',
+                  'fatalitiesFilterColor')
 
 getStates <- function() {
   data <- read.csv("data/statenames.csv", fileEncoding = "UTF-8-BOM")
@@ -22,6 +24,8 @@ ignoreNextMag <- FALSE
 
 #creates button group for filtering based on color/width
 createButtonGroup <- function(filter_id) {
+  if(filter_id == 'magnitudeFilter') { value = TRUE }
+  else { value = FALSE }
   div( 
     class = "buttonGroup",
     prettyToggle(
@@ -39,7 +43,7 @@ createButtonGroup <- function(filter_id) {
       icon_on = icon("tint"),
       icon_off = icon("tint"),
       status_on = "primary", status_off = "default",
-      shape = "round", outline = TRUE
+      shape = "round", outline = TRUE, value = value
     )
   )
 }
@@ -156,7 +160,7 @@ ui <- fluidPage(
           sliderInput("distanceSlider", "", min = 0, max = 4500, value = c(0, 4500))
         ),
 
-        createButtonGroup('loss'),
+        createButtonGroup('lossFilter'),
         h3("Loss"),
         div(
           class = "filterContainer",
@@ -204,8 +208,26 @@ ui <- fluidPage(
   )
 )
 
-server <- function(input, output, session) {
+updateColorBy <- function(isSelected, session, idOfSelectedColorBy) {
+  if(isSelected){
+    for (i in colorByArray){
+      updatePrettyToggle(session = session,
+                         inputId = i,
+                         value = FALSE )
+    }
+    
+    updatePrettyToggle(session = session,
+                       inputId = idOfSelectedColorBy,
+                       value = TRUE)
+  }
+  else{
+    # print(isSelected)
+  }
+ 
   
+}#updateColorBy()
+
+server <- function(input, output, session) {
   #show about page
   observeEvent(input$aboutButton, {
     showModal(
@@ -224,19 +246,23 @@ server <- function(input, output, session) {
       )
     )
   })
+
+  observeEvent(input$magnitudeFilterColor, {
+      updateColorBy(input$magnitudeFilterColor, session , "magnitudeFilterColor")  
+  })
   
   observeEvent(input$widthFilterColor, {
-    print(input$widthFilterColor)
+      updateColorBy(input$widthFilterColor, session , "widthFilterColor")  
   })
   
-  observeEvent(input$magnitudeFilterWidth, {
-    print(input$magnitudeFilterWidth)
+  observeEvent(input$lengthFilterColor, {
+      updateColorBy(input$lengthFilterColor, session , "lengthFilterColor") 
   })
   
-  observeEvent(input$magGroup, {
-    print(input$magGroup)
+  observeEvent(input$distanceFilterColor, {
+      updateColorBy(input$distanceFilterColor, session , "distanceFilterColor")  
   })
-  
+
   observe({
     if (ignoreNextMag) {
       magnitudesSelected <<- input$magGroup
@@ -276,6 +302,20 @@ server <- function(input, output, session) {
       magnitudesSelected <<- newMagnitudes
     }
   })
+  
+
+  observeEvent(input$lossFilterColor, {
+      updateColorBy(input$lossFilterColor, session , "lossFilterColor")  
+  })
+  
+  observeEvent(input$injuriesFilterColor, {
+      updateColorBy(input$injuriesFilterColor, session , "injuriesFilterColor")  
+  })
+  
+  observeEvent(input$fatalitiesFilterColor, {
+      updateColorBy(input$fatalitiesFilterColor, session , "fatalitiesFilterColor")  
+  })
+  
   
   output$sampleMap1 <-  renderLeaflet({
     leaflet() %>%
