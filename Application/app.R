@@ -7,6 +7,7 @@ library(plotly)
 
 colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor',
                   'fatalitiesFilterColor')
+widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth','lossFilterWidth','injuriesFilterWidth','fatalitiesFilterWidth')
 
 getStates <- function() {
   data <- read.csv("data/statenames.csv", fileEncoding = "UTF-8-BOM")
@@ -208,6 +209,7 @@ ui <- fluidPage(
   )
 )
 
+
 updateColorBy <- function(isSelected, session, idOfSelectedColorBy) {
   if(isSelected){
     for (i in colorByArray){
@@ -223,9 +225,42 @@ updateColorBy <- function(isSelected, session, idOfSelectedColorBy) {
   else{
     # print(isSelected)
   }
- 
-  
 }#updateColorBy()
+
+#ensure that one colorBy selected all times
+checkOtherColorBySelection <- function(session, input, idOfSelectedColorBy){
+  anythingSelected <- FALSE
+  if(input$magnitudeFilterColor) anythingSelected <- TRUE
+  else if(input$widthFilterColor) anythingSelected <- TRUE
+  else if(input$lengthFilterColor) anythingSelected <- TRUE
+  else if(input$distanceFilterColor) anythingSelected <- TRUE
+  else if(input$lossFilterColor) anythingSelected <- TRUE
+  else if(input$injuriesFilterColor) anythingSelected <- TRUE
+  else if(input$fatalitiesFilterColor) anythingSelected <- TRUE
+  
+  if(anythingSelected == FALSE){
+    updatePrettyToggle(session = session,
+                       inputId = idOfSelectedColorBy,
+                       value = TRUE)
+  }
+}#checkOtherColorBySelection()
+
+updateWidthBy <- function(isSelected, session, idOfSelectedWidthBy) {
+  if(isSelected){
+    for (i in widthByArray){
+      updatePrettyToggle(session = session,
+                         inputId = i,
+                         value = FALSE )
+    }
+    
+    updatePrettyToggle(session = session,
+                       inputId = idOfSelectedWidthBy,
+                       value = TRUE)
+  }
+  else{
+    # print(isSelected)
+  }
+}#updateWidthBy()
 
 server <- function(input, output, session) {
   #show about page
@@ -248,21 +283,70 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$magnitudeFilterColor, {
-      updateColorBy(input$magnitudeFilterColor, session , "magnitudeFilterColor")  
+    updateColorBy(input$magnitudeFilterColor, session , "magnitudeFilterColor")  
+    if(!input$magnitudeFilterColor){
+      checkOtherColorBySelection(session, input, "magnitudeFilterColor")
+    }
   })
   
   observeEvent(input$widthFilterColor, {
-      updateColorBy(input$widthFilterColor, session , "widthFilterColor")  
+      updateColorBy(input$widthFilterColor, session , "widthFilterColor") 
+    if(!input$widthFilterColor){
+      checkOtherColorBySelection(session, input, "widthFilterColor")
+    }
   })
   
   observeEvent(input$lengthFilterColor, {
       updateColorBy(input$lengthFilterColor, session , "lengthFilterColor") 
+    if(!input$lengthFilterColor){
+      checkOtherColorBySelection(session, input, "lengthFilterColor")
+    }
   })
   
   observeEvent(input$distanceFilterColor, {
       updateColorBy(input$distanceFilterColor, session , "distanceFilterColor")  
+    if(!input$distanceFilterColor){
+      checkOtherColorBySelection(session, input, "distanceFilterColor")
+    }
   })
-
+  
+  observeEvent(input$lossFilterColor, {
+    updateColorBy(input$lossFilterColor, session , "lossFilterColor")  
+    if(!input$lossFilterColor){
+      checkOtherColorBySelection(session, input, "lossFilterColor")
+    }
+  })
+  
+  observeEvent(input$injuriesFilterColor, {
+    updateColorBy(input$injuriesFilterColor, session , "injuriesFilterColor")  
+    if(!input$injuriesFilterColor){
+      checkOtherColorBySelection(session, input, "injuriesFilterColor")
+    }
+  })
+  
+  observeEvent(input$fatalitiesFilterColor, {
+    updateColorBy(input$fatalitiesFilterColor, session , "fatalitiesFilterColor")  
+    if(!input$fatalitiesFilterColor){
+      checkOtherColorBySelection(session, input, "fatalitiesFilterColor")
+    }
+  })
+  
+  observeEvent(input$magnitudeFilterWidth, {
+    updateWidthBy(input$magnitudeFilterWidth, session , "magnitudeFilterWidth")  
+  })
+  observeEvent(input$distanceFilterWidth, {
+    updateWidthBy(input$distanceFilterWidth, session , "distanceFilterWidth")  
+  })
+  observeEvent(input$lossFilterWidth, {
+    updateWidthBy(input$lossFilterWidth, session , "lossFilterWidth")  
+  })
+  observeEvent(input$injuriesFilterWidth, {
+    updateWidthBy(input$injuriesFilterWidth, session , "injuriesFilterWidth")  
+  })
+  observeEvent(input$fatalitiesFilterWidth, {
+    updateWidthBy(input$fatalitiesFilterWidth, session , "fatalitiesFilterWidth")  
+  })
+  
   observe({
     if (ignoreNextMag) {
       magnitudesSelected <<- input$magGroup
@@ -302,20 +386,6 @@ server <- function(input, output, session) {
       magnitudesSelected <<- newMagnitudes
     }
   })
-  
-
-  observeEvent(input$lossFilterColor, {
-      updateColorBy(input$lossFilterColor, session , "lossFilterColor")  
-  })
-  
-  observeEvent(input$injuriesFilterColor, {
-      updateColorBy(input$injuriesFilterColor, session , "injuriesFilterColor")  
-  })
-  
-  observeEvent(input$fatalitiesFilterColor, {
-      updateColorBy(input$fatalitiesFilterColor, session , "fatalitiesFilterColor")  
-  })
-  
   
   output$sampleMap1 <-  renderLeaflet({
     leaflet() %>%
