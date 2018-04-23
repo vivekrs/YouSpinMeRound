@@ -5,6 +5,7 @@ library(shinyWidgets)
 library(dplyr)
 library(plotly)
 
+
 colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor',
                   'fatalitiesFilterColor')
 widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth','lossFilterWidth','injuriesFilterWidth','fatalitiesFilterWidth')
@@ -112,12 +113,12 @@ ui <- fluidPage(
         selectInput("chartBySelect", "Chart By:",
           choices = list("Year", "Month", "Hour", "Distance from Chicago", "County")
         ),
-        h3("Year"),
+        h3("Year"), 
         div(
           id = "yearDiv",
           class = "filterContainer",
           sliderInput("yearSlider", "", min = 1965, max = 2016, value = c(2000, 2016), step = 1,
-            width = "100%", animate = animationOptions(interval = 300, loop = FALSE)
+            width = "100%", animate = animationOptions(interval = 300, loop = FALSE), sep = ""
           )
         )
       ),
@@ -137,7 +138,7 @@ ui <- fluidPage(
       div(
         class = "filter-group",
         createColorButtonGroup("widthFilter"),
-        h3("Width"),
+        h3("Width"), uiOutput("widthUnitLabel"),
         div(
           id = "widthDiv",
           class = "filterContainer",
@@ -145,7 +146,7 @@ ui <- fluidPage(
         ),
         
         createColorButtonGroup("lengthFilter"),
-        h3("Length"),
+        h3("Length"), uiOutput("lengthUnitLabel"),
         div(
           class = "filterContainer",
           sliderInput("lengthSlider", "", min = 0, max = 250, value = c(0, 250))
@@ -155,7 +156,7 @@ ui <- fluidPage(
       div(
         class = "filter-group",        
         createButtonGroup('distanceFilter'),
-        h3("Distance from Chicago"),
+        h3("Distance from Chicago"), uiOutput("distanceUnitLabel"),
         div(
           class = "filterContainer",
           sliderInput("distanceSlider", "", min = 0, max = 4500, value = c(0, 4500))
@@ -262,6 +263,7 @@ updateWidthBy <- function(isSelected, session, idOfSelectedWidthBy) {
   }
 }#updateWidthBy()
 
+
 server <- function(input, output, session) {
   #show about page
   observeEvent(input$aboutButton, {
@@ -280,6 +282,35 @@ server <- function(input, output, session) {
         easyClose = TRUE
       )
     )
+  })
+  
+  output$widthUnitLabel <- renderUI({
+    if(input$measurementRadio == 'Metric'){ h4("(m)") }
+    else{ h4(class= "units","(yards)") }
+  })
+  
+  output$lengthUnitLabel <- renderUI({
+    if(input$measurementRadio == 'Metric'){ h4("(km)") }
+    else{ h4(class= "units","(miles)") }
+  })
+  
+  output$distanceUnitLabel <- renderUI({
+    if(input$measurementRadio == 'Metric'){ h4("(km)") }
+    else{ h4(class= "units","(miles)") }
+  })
+  
+  observeEvent(input$measurementRadio, {
+    if(input$measurementRadio == 'Metric'){
+      updateSliderInput(session, "widthSlider",min = 0, max = 5000, value = c(0, 5000))
+      updateSliderInput(session, "lengthSlider",min = 0, max = 450, value = c(0, 450))
+      updateSliderInput(session, "distanceSlider",min = 0, max = 7500, value = c(0, 7500))
+      
+    }
+    else{
+      updateSliderInput(session, "widthSlider",min = 0, max = 5000, value = c(0, 5000))
+      updateSliderInput(session, "lengthSlider",min = 0, max = 250, value = c(0, 250))
+      updateSliderInput(session, "distanceSlider",min = 0, max = 4500, value = c(0, 4500))
+    }
   })
 
   observeEvent(input$magnitudeFilterColor, {

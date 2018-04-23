@@ -101,7 +101,7 @@ body {
   margin-top: 10px;
 }
 
-h3{
+h3, h4{
   display: inline;
 }
 
@@ -125,6 +125,14 @@ h3{
   border-color: #262626;
   padding: 0px;
   float: right;
+}
+
+.units{
+  padding-left: 5px;
+}
+
+#widthUnitLabel, #lengthUnitLabel, #distanceUnitLabel {
+  display: inline;
 }
 
 /*Wall styles*/
@@ -151,6 +159,9 @@ h3{
   }
   h3 {
     font-size: 1.5vh;
+  }
+  h4{
+    font-size: 1vh;
   }
   .shiny-input-container {
     width: 610px !important;
@@ -191,10 +202,6 @@ h3{
   }
   .modal-content{
     padding: 30px;
-  }
-  #magnitudeDiv div:nth-child(1){
-    margin-bottom: -50px;
-    padding-top: 20px;
   }
   #mapOne .leaflet-control-container .leaflet-right, #mapTwo .leaflet-control-container .leaflet-right{
     font-size: 25px;
