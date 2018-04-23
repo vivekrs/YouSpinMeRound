@@ -135,6 +135,10 @@ h3, h4{
   display: inline;
 }
 
+.tooltip-inner{
+  background-color: #090909;
+}
+
 /*Wall styles*/
 @media (min-width: 2000px) {
   #container {
@@ -162,6 +166,9 @@ h3, h4{
   }
   h4{
     font-size: 1vh;
+  }
+  .tooltip-inner {
+    font-size: 0.9vh;
   }
   .shiny-input-container {
     width: 610px !important;

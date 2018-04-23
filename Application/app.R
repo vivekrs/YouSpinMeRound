@@ -4,7 +4,8 @@ library(shinyjs)
 library(shinyWidgets)
 library(dplyr)
 library(plotly)
-
+library(shiny)
+library(shinyBS)
 
 colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor',
                   'fatalitiesFilterColor')
@@ -39,6 +40,7 @@ createButtonGroup <- function(filter_id) {
       status_on = "primary", status_off = "default",
       shape = "square", outline = TRUE
     ),
+    bsTooltip(paste(filter_id , "Width", sep=""),title = "Apply_Width", placement = "bottom", trigger = "hover", options = NULL),
     prettyToggle(
       inputId = paste(filter_id , "Color", sep=""),
       label_on = "", label_off="",
@@ -46,7 +48,8 @@ createButtonGroup <- function(filter_id) {
       icon_off = icon("tint"),
       status_on = "primary", status_off = "default",
       shape = "round", outline = TRUE, value = value
-    )
+    ),
+    bsTooltip(paste(filter_id , "Color", sep=""),title = "Apply_Color", placement = "bottom", trigger = "hover", options = NULL)
   )
 }
 createColorButtonGroup <- function(filter_id) {
@@ -58,7 +61,9 @@ createColorButtonGroup <- function(filter_id) {
         icon_off = icon("tint"),
         status_on = "primary", status_off = "default",
         shape = "round", outline = TRUE
-      ) )
+      ),
+      bsTooltip(paste(filter_id , "Color", sep=""),title = "Apply_Color", placement = "bottom", trigger = "hover", options = NULL)
+      )
 }
 
 getMagChart<- function() {
@@ -427,7 +432,7 @@ server <- function(input, output, session) {
       addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
       addLayersControl(
         baseGroups = c("Dark","Light", "Satellite", "Minimal", "Colorblind Safe"),
-        options = layersControlOptions(collapsed = FALSE)
+        options = layersControlOptions(collapsed = TRUE)
       ) %>%
       setView(lat = 41.881832,
               lng = -87.623177,
