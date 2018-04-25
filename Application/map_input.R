@@ -5,12 +5,12 @@ library(shiny)
 library(shinydashboard)
 
 
-us <-  rgdal::readOGR("us-counties.geojson")
+us <-  rgdal::readOGR("uscounties.geojson")
 # us <-  rgdal::readOGR("us-states.geojson")
 
 
 state_popup <- paste0("<strong>Name: </strong>", 
-                      us$name)
+                      us$NAME)
 
 
 ui <- fluidPage(
@@ -39,7 +39,7 @@ server <- function( input, output, session ){
                    , opacity = 0.2
                    , color = "#000000"
                    , weight = 2
-                   , layerId = us$id
+                   , layerId = us$GEO_ID
                    , group = "click.list" , popup = state_popup)
   }
   
@@ -56,7 +56,7 @@ server <- function( input, output, session ){
     
     click <- input$myMap_shape_click
     click.list$ids <- click$id 
-    lines.of.interest <- us[ which( us$id %in% click.list$ids ) , ] # for later
+    lines.of.interest <- us[ which( us$GEO_ID %in% click.list$ids ) , ] # for later
     print(click)
  
   }) # end of shiny::observeEvent({})
@@ -64,3 +64,6 @@ server <- function( input, output, session ){
 } 
 
 shiny::shinyApp( ui = ui, server = server)
+
+
+#https://www.r-bloggers.com/plotting-driving-routes-and-rental-data-for-houston-gepaf-gmap-plotly-leaflet/
