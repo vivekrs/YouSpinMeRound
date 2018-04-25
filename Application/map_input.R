@@ -4,13 +4,54 @@ library(leaflet)
 library(shiny)
 library(shinydashboard)
 
+data <- read.csv("data/alldata.csv", fileEncoding = "UTF-8-BOM")
 
-us <-  rgdal::readOGR("uscounties.geojson")
+
+uscounties <-  rgdal::readOGR("uscounties.geojson")
 # us <-  rgdal::readOGR("us-states.geojson")
-
+usstates <-  rgdal::readOGR("usstates.geojson")
 
 state_popup <- paste0("<strong>Name: </strong>", 
-                      us$NAME)
+                      usstates$NAME)
+counties_popup <- paste0("<strong>Name: </strong>", 
+                      uscounties$NAME)
+
+
+state <- TRUE
+
+#helper function to get ctf and stf from map input
+code_get <- function(id ,  state = FALSE)
+{
+  string <- sub(".*US", "", id)
+  code <- list(stf= -1 , ctf = -1)
+  
+  code$stf <- as.numeric(substr(string,0,2))
+  
+  if(!state)
+  {
+    code$ctf<-as.numeric(substr(string,3,5))
+  }
+  return (code)
+  
+}
+
+
+
+draw_tracks <- function(map , df )
+{
+  colorNumeric(c("#00FF15", "#faff00","#FF0000", "#17129e"), 
+             domain = as.numeric(df$inj),
+             alpha = FALSE) -> pal
+
+  for(i in 1:100){
+        map <- addPolylines(map, 
+      lat = as.numeric(df[i, c('slat','elat' )]), lng = as.numeric(df[i, c('slon', 'elon')])
+      , color = pal(as.numeric(df[i,c('inj')]))
+      )
+    
+  }
+return (map)
+}
 
 
 ui <- fluidPage(
@@ -31,22 +72,54 @@ ui <- fluidPage(
 server <- function( input, output, session ){
   
   # function to create foundational map
-  foundational.map <- function(){
-    leaflet() %>%
-      addProviderTiles("CartoDB.Positron") %>%
-      addPolygons( data = us
+  foundational.map <- function(bool){
+    y <- leaflet() %>%
+      addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
+      addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
+      addProviderTiles(providers$Esri.WorldImagery, group = 'Satellite') %>%
+      addProviderTiles(providers$Esri.WorldGrayCanvas, group = 'Minimal') %>%
+      addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
+      addLayersControl(
+        baseGroups = c("Dark","Light", "Satellite", "Minimal", "Colorblind Safe"),
+        options = layersControlOptions(collapsed = TRUE)
+      ) %>%
+      setView(lat = 41.881832,
+              lng = -87.623177,
+              zoom = 4)
+    if(bool){
+     y <- y%>%
+      addPolygons( data = usstates
                    , fillOpacity = 0
                    , opacity = 0.2
                    , color = "#000000"
                    , weight = 2
-                   , layerId = us$GEO_ID
-                   , group = "click.list" , popup = state_popup)
+                   , layerId = usstates$GEO_ID
+                   , group = "click.list" , popup = state_popup)}
+    else{
+
+     y <- y%>%
+      addPolygons( data = uscounties
+                   , fillOpacity = 0
+                   , opacity = 0.2
+                   , color = "#000000"
+                   , weight = 2
+                   , layerId = uscounties$GEO_ID
+                   , group = "click.list" , popup = counties_popup)
+
+    } 
+
+      y 
   }
   
   # reactiveVal for the map object, and corresponding output object.
-  myMap_reval <- reactiveVal(foundational.map())
+  # myMap_reval <- reactiveVal(foundational.map())
   output$myMap <- renderLeaflet({
-    myMap_reval()
+     
+    map<- foundational.map(state) 
+      
+    draw_tracks(map , data)
+
+    #myMap_reval()
   }) 
   
   # To hold the selected map region id use it to get the state or county name.
@@ -56,11 +129,13 @@ server <- function( input, output, session ){
     
     click <- input$myMap_shape_click
     click.list$ids <- click$id 
-    lines.of.interest <- us[ which( us$GEO_ID %in% click.list$ids ) , ] # for later
-    print(click)
+    #lines.of.interest <- us[ which( us$GEO_ID %in% click.list$ids ) , ] # for later
+    print(code_get(click$id,state))
  
   }) # end of shiny::observeEvent({})
    
+
+
 } 
 
 shiny::shinyApp( ui = ui, server = server)
