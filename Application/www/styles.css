@@ -91,19 +91,21 @@ body {
   max-width: 150px;
   margin-top: 10px;
 }
-.buttonGroup div{
+
+.buttonGroup div {
   display: inline;
 }
 
-.states > span {
+.states>span {
   float: right;
 }
 
-h3, h4{
+h3,
+h4 {
   display: inline;
 }
 
-.form-group{
+.form-group {
   margin-bottom: 25px;
 }
 
@@ -116,7 +118,7 @@ h3, h4{
   color: #c7c7c7;
 }
 
-#about{
+#about {
   font-size: 25px;
   color: #fff;
   background-color: #262626;
@@ -125,19 +127,22 @@ h3, h4{
   float: right;
 }
 
-.units{
+.units {
   padding-left: 5px;
 }
 
-#widthUnitLabel, #lengthUnitLabel, #distanceUnitLabel {
+#widthUnitLabel,
+#lengthUnitLabel,
+#distanceUnitLabel {
   display: inline;
 }
 
-.tooltip-inner{
+.tooltip-inner {
   background-color: #090909;
 }
 
 /*Wall styles*/
+
 @media (min-width: 2000px) {
   #container {
     height: 100vh;
@@ -150,10 +155,11 @@ h3, h4{
     display: flex;
     align-items: flex-start;
   }
-  #mapTwo{
+  #mapTwo {
     margin-right: 1em;
   }
-  #plotOne, #plotTwo{
+  #plotOne,
+  #plotTwo {
     margin-left: 1em;
   }
   h1 {
@@ -162,7 +168,7 @@ h3, h4{
   h3 {
     font-size: 1.5vh;
   }
-  h4{
+  h4 {
     font-size: 1vh;
   }
   .tooltip-inner {
@@ -177,8 +183,7 @@ h3, h4{
   .filterContainer {
     margin-top: -30px;
   }
-
-  .buttonGroup div{
+  .buttonGroup div {
     margin-top: 10px;
   }
   #magGroup {
@@ -188,44 +193,41 @@ h3, h4{
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
-
-  input[type=checkbox],  input[type=radio] {
-  /* Double-sized Checkboxes */
-  -ms-transform: scale(3); /* IE */
-  -moz-transform: scale(3); /* FF */
-  -webkit-transform: scale(3); /* Safari and Chrome */
-  -o-transform: scale(3); /* Opera */
-  padding: 10px;
-  margin: 10px;
+  input[type=checkbox],
+  input[type=radio] {
+    /* Double-sized Checkboxes */
+    -ms-transform: scale(3);
+    /* IE */
+    -moz-transform: scale(3);
+    /* FF */
+    -webkit-transform: scale(3);
+    /* Safari and Chrome */
+    -o-transform: scale(3);
+    /* Opera */
+    padding: 10px;
+    margin: 10px;
   }
-  .checkbox label span, .shiny-options-group label span {
+  .checkbox label span,
+  .shiny-options-group label span {
     padding: 0 1em;
     line-height: 2px;
   }
-  #about{
+  #about {
     font-size: 35px;
   }
-  .modal-content{
+  .modal-content {
     padding: 30px;
   }
-<<<<<<< HEAD
-=======
-  #magnitudeDiv div:nth-child(1){
+  #magnitudeDiv div:nth-child(1) {
     margin-bottom: -50px;
     padding-top: 0;
   }
->>>>>>> Filter Data
-  #mapOne .leaflet-control-container .leaflet-right, #mapTwo .leaflet-control-container .leaflet-right{
+  #mapOne .leaflet-control-container .leaflet-right,
+  #mapTwo .leaflet-control-container .leaflet-right {
     font-size: 25px;
   }
-  #mapOne .leaflet-control-layers-base, #mapTwo .leaflet-control-layers-base {
+  #mapOne .leaflet-control-layers-base,
+  #mapTwo .leaflet-control-layers-base {
     padding: 15px;
   }
-
 }
-
-
-
-
-
-
