@@ -95,10 +95,8 @@ body {
   display: inline;
 }
 
-.colorButton{
+.states > span {
   float: right;
-  max-width: 20px;
-  margin-top: 10px;
 }
 
 h3, h4{
@@ -210,6 +208,13 @@ h3, h4{
   .modal-content{
     padding: 30px;
   }
+<<<<<<< HEAD
+=======
+  #magnitudeDiv div:nth-child(1){
+    margin-bottom: -50px;
+    padding-top: 0;
+  }
+>>>>>>> Filter Data
   #mapOne .leaflet-control-container .leaflet-right, #mapTwo .leaflet-control-container .leaflet-right{
     font-size: 25px;
   }

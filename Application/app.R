@@ -19,6 +19,10 @@ getStates <- function() {
 states <- getStates()
 
 data <- read.csv("data/alldata.csv", fileEncoding = "UTF-8-BOM")
+data[is.na(data$dollarloss), "dollarloss"] <- 0
+
+state1Data <- data
+state2Data <- data
 
 allMag <- c("All")
 magnitudes <- c(levels(data$mag), allMag)
@@ -53,7 +57,7 @@ createButtonGroup <- function(filter_id) {
   )
 }
 createColorButtonGroup <- function(filter_id) {
-  div(class = "colorButton",
+  div(class = "buttonGroup",
       prettyToggle(
         inputId = paste(filter_id , "Color", sep=""), 
         label_on = "", label_off="",
@@ -108,8 +112,10 @@ ui <- fluidPage(
 
       div(class = "spacer"),      
       div(
-        class = "filter-group",
+        class = "filter-group states",
+        textOutput("state1Count", inline = TRUE),
         selectInput("state1Select", "State 1", states, "IL"),
+        textOutput("state2Count", inline = TRUE),
         selectInput("state2Select", "State 2", states, "TX")
       ),
       
@@ -122,9 +128,8 @@ ui <- fluidPage(
         div(
           id = "yearDiv",
           class = "filterContainer",
-          sliderInput("yearSlider", "", min = 1965, max = 2016, value = c(2000, 2016), step = 1,
-            width = "100%", animate = animationOptions(interval = 300, loop = FALSE), sep = ""
-          )
+          sliderInput("yearSlider", "", min = 1950, max = 2017, value = c(2000, 2017), step = 1,
+            sep = "", width = "100%", animate = animationOptions(interval = 300, loop = FALSE))
         )
       ),
       
@@ -171,8 +176,7 @@ ui <- fluidPage(
         h3("Loss"),
         div(
           class = "filterContainer",
-          sliderInput("lossSlider", "", min = 0, max = 1000000, value = c(0, 1000000))
-        )
+          sliderInput("lossSlider", "USD", min = 0, max = 3000000000, value = c(0, 3000000000)))
       ),
       
       div(
@@ -181,16 +185,14 @@ ui <- fluidPage(
         h3("Injuries"),
         div(
           class = "filterContainer",
-          sliderInput("injuriesSlider", "", min = 0, max = 1750, value = c(0, 1750)
-          )
+          sliderInput("injuriesSlider", "#", min = 0, max = 1750, value = c(0, 1750))
         ),
         
         createButtonGroup('fatalitiesFilter'),
         h3("Fatalities"),
         div(
           class = "filterContainer",
-          sliderInput("fatalitiesSlider", "", min = 0, max = 160, value = c(0, 160))
-        )
+          sliderInput("fatalitiesSlider", "#", min = 0, max = 160, value = c(0, 160)))
       ),
       
       div(class = "spacer"),    
@@ -421,6 +423,49 @@ server <- function(input, output, session) {
       updateCheckboxGroupInput(session, 'magGroup', choices = magnitudes, selected = newMagnitudes)
       magnitudesSelected <<- newMagnitudes
     }
+  })
+
+  observe({
+    label <- if(input$measurementRadio == "Imperial") "yards" else "meters"
+    maxValue <- max(if(input$measurementRadio == "Imperial") data$wid else data$widm)
+    updateSliderInput(session, "widthSlider", label = label, max = maxValue, value = c(0, maxValue))
+    
+    label <- if(input$measurementRadio == "Imperial") "miles" else "kilometers"
+    maxValue <- max(if(input$measurementRadio == "Imperial") data$len else data$lenkm)
+    updateSliderInput(session, "lengthSlider", label = label, max = maxValue, value = c(0, maxValue))
+
+    maxValue <- max(if(input$measurementRadio == "Imperial") data$chidist else data$chidistkm)
+    updateSliderInput(session, "distanceSlider", label = label, max = maxValue, value = c(0, maxValue))
+  })
+  
+  observe({
+    plotData <- subset(data, mag %in% input$magGroup)
+
+    plotData <- subset(plotData, yr >= input$yearSlider[1])
+    plotData <- subset(plotData, yr <= input$yearSlider[2])
+    
+    plotData <- subset(plotData, (if(input$measurementRadio == "Imperial") wid else widm) >= input$widthSlider[1])
+    plotData <- subset(plotData, (if(input$measurementRadio == "Imperial") wid else widm) <= input$widthSlider[2])
+    
+    plotData <- subset(plotData, (if(input$measurementRadio == "Imperial") len else lenkm) >= input$lengthSlider[1])
+    plotData <- subset(plotData, (if(input$measurementRadio == "Imperial") len else lenkm) <= input$lengthSlider[2])
+    
+    plotData <- subset(plotData, (if(input$measurementRadio == "Imperial") chidist else chidistkm) >= input$distanceSlider[1])
+    plotData <- subset(plotData, (if(input$measurementRadio == "Imperial") chidist else chidistkm) <= input$distanceSlider[2])
+    
+    plotData <- subset(plotData, dollarloss >= input$lossSlider[1])
+    plotData <- subset(plotData, dollarloss <= input$lossSlider[2])
+    
+    plotData <- subset(plotData, inj >= input$injuriesSlider[1])
+    plotData <- subset(plotData, inj <= input$injuriesSlider[2])
+    
+    plotData <- subset(plotData, fat >= input$lossSlider[1])
+    plotData <- subset(plotData, fat <= input$lossSlider[2])
+    
+    state1Data <<- subset(plotData, st == input$state1Select)
+    output$state1Count <- renderText(paste(nrow(state1Data), "records"))
+    state2Data <<- subset(plotData, st == input$state2Select)
+    output$state2Count <- renderText(paste(nrow(state2Data), "records"))
   })
   
   output$sampleMap1 <-  renderLeaflet({
