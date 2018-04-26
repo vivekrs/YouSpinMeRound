@@ -148,7 +148,7 @@ ui <- fluidPage(
       div(
         class = "filter-group",
         createColorButtonGroup("widthFilter"),
-        h3("Width"), uiOutput("widthUnitLabel"),
+        h3("Width"),
         div(
           id = "widthDiv",
           class = "filterContainer",
@@ -156,7 +156,7 @@ ui <- fluidPage(
         ),
         
         createColorButtonGroup("lengthFilter"),
-        h3("Length"), uiOutput("lengthUnitLabel"),
+        h3("Length"),
         div(
           class = "filterContainer",
           sliderInput("lengthSlider", "", min = 0, max = 250, value = c(0, 250))
@@ -166,7 +166,7 @@ ui <- fluidPage(
       div(
         class = "filter-group",        
         createButtonGroup('distanceFilter'),
-        h3("Distance from Chicago"), uiOutput("distanceUnitLabel"),
+        h3("Distance from Chicago"),
         div(
           class = "filterContainer",
           sliderInput("distanceSlider", "", min = 0, max = 4500, value = c(0, 4500))
@@ -217,59 +217,43 @@ ui <- fluidPage(
   )
 )
 
-
-updateColorBy <- function(isSelected, session, idOfSelectedColorBy) {
-  if(isSelected){
-    for (i in colorByArray){
-      updatePrettyToggle(session = session,
-                         inputId = i,
-                         value = FALSE )
+updateColorBy <-
+  function(isSelected, session, input, idOfSelectedColorBy) {
+    if (isSelected) {
+      for (i in colorByArray) {
+        updatePrettyToggle(session = session, inputId = i, value = i == idOfSelectedColorBy)
+      }
     }
-    
-    updatePrettyToggle(session = session,
-                       inputId = idOfSelectedColorBy,
-                       value = TRUE)
-  }
-  else{
-    # print(isSelected)
-  }
-}#updateColorBy()
-
-#ensure that one colorBy selected all times
-checkOtherColorBySelection <- function(session, input, idOfSelectedColorBy){
-  anythingSelected <- FALSE
-  if(input$magnitudeFilterColor) anythingSelected <- TRUE
-  else if(input$widthFilterColor) anythingSelected <- TRUE
-  else if(input$lengthFilterColor) anythingSelected <- TRUE
-  else if(input$distanceFilterColor) anythingSelected <- TRUE
-  else if(input$lossFilterColor) anythingSelected <- TRUE
-  else if(input$injuriesFilterColor) anythingSelected <- TRUE
-  else if(input$fatalitiesFilterColor) anythingSelected <- TRUE
-  
-  if(anythingSelected == FALSE){
-    updatePrettyToggle(session = session,
-                       inputId = idOfSelectedColorBy,
-                       value = TRUE)
-  }
-}#checkOtherColorBySelection()
-
-updateWidthBy <- function(isSelected, session, idOfSelectedWidthBy) {
-  if(isSelected){
-    for (i in widthByArray){
-      updatePrettyToggle(session = session,
-                         inputId = i,
-                         value = FALSE )
+    else{
+      anythingSelected <- FALSE
+      for (i in colorByArray) {
+        if (input[[i]]) 
+          anythingSelected <- TRUE
+      }
+      
+      if (anythingSelected == FALSE)
+        updatePrettyToggle(session = session, inputId = idOfSelectedColorBy, value = TRUE)
     }
-    
-    updatePrettyToggle(session = session,
-                       inputId = idOfSelectedWidthBy,
-                       value = TRUE)
   }
-  else{
-    # print(isSelected)
-  }
-}#updateWidthBy()
 
+updateWidthBy <-
+  function(isSelected, session, input, idOfSelectedWidthBy) {
+    if (isSelected) {
+      for (i in widthByArray) {
+        updatePrettyToggle(session = session, inputId = i, value = i == idOfSelectedWidthBy)
+      }
+    }
+    else{
+      anythingSelected <- FALSE
+      for (i in widthByArray) {
+        if (input[[i]]) 
+          anythingSelected <- TRUE
+      }
+      
+      if (anythingSelected == FALSE)
+        updatePrettyToggle(session = session, inputId = idOfSelectedWidthBy, value = TRUE)
+    }
+  }
 
 server <- function(input, output, session) {
   #show about page
@@ -291,101 +275,58 @@ server <- function(input, output, session) {
     )
   })
   
-  output$widthUnitLabel <- renderUI({
-    if(input$measurementRadio == 'Metric'){ h4("(m)") }
-    else{ h4(class= "units","(yards)") }
-  })
-  
-  output$lengthUnitLabel <- renderUI({
-    if(input$measurementRadio == 'Metric'){ h4("(km)") }
-    else{ h4(class= "units","(miles)") }
-  })
-  
-  output$distanceUnitLabel <- renderUI({
-    if(input$measurementRadio == 'Metric'){ h4("(km)") }
-    else{ h4(class= "units","(miles)") }
-  })
-  
   observeEvent(input$measurementRadio, {
-    if(input$measurementRadio == 'Metric'){
-      updateSliderInput(session, "widthSlider",min = 0, max = 5000, value = c(0, 5000))
-      updateSliderInput(session, "lengthSlider",min = 0, max = 450, value = c(0, 450))
-      updateSliderInput(session, "distanceSlider",min = 0, max = 7500, value = c(0, 7500))
-      
-    }
-    else{
-      updateSliderInput(session, "widthSlider",min = 0, max = 5000, value = c(0, 5000))
-      updateSliderInput(session, "lengthSlider",min = 0, max = 250, value = c(0, 250))
-      updateSliderInput(session, "distanceSlider",min = 0, max = 4500, value = c(0, 4500))
-    }
+    label <- if(input$measurementRadio == "Imperial") "yards" else "meters"
+    maxValue <- max(if(input$measurementRadio == "Imperial") data$wid else data$widm)
+    updateSliderInput(session, "widthSlider", label = label, max = maxValue, value = c(0, maxValue))
+    
+    label <- if(input$measurementRadio == "Imperial") "miles" else "kilometers"
+    maxValue <- max(if(input$measurementRadio == "Imperial") data$len else data$lenkm)
+    updateSliderInput(session, "lengthSlider", label = label, max = maxValue, value = c(0, maxValue))
+    
+    maxValue <- max(if(input$measurementRadio == "Imperial") data$chidist else data$chidistkm)
+    updateSliderInput(session, "distanceSlider", label = label, max = maxValue, value = c(0, maxValue))
   })
 
   observeEvent(input$magnitudeFilterColor, {
-    updateColorBy(input$magnitudeFilterColor, session , "magnitudeFilterColor")  
-    if(!input$magnitudeFilterColor){
-      checkOtherColorBySelection(session, input, "magnitudeFilterColor")
-    }
+    updateColorBy(input$magnitudeFilterColor, session, input, "magnitudeFilterColor")  
   })
-  
   observeEvent(input$widthFilterColor, {
-      updateColorBy(input$widthFilterColor, session , "widthFilterColor") 
-    if(!input$widthFilterColor){
-      checkOtherColorBySelection(session, input, "widthFilterColor")
-    }
+      updateColorBy(input$widthFilterColor, session, input, "widthFilterColor") 
   })
-  
   observeEvent(input$lengthFilterColor, {
-      updateColorBy(input$lengthFilterColor, session , "lengthFilterColor") 
-    if(!input$lengthFilterColor){
-      checkOtherColorBySelection(session, input, "lengthFilterColor")
-    }
+      updateColorBy(input$lengthFilterColor, session, input, "lengthFilterColor") 
   })
-  
   observeEvent(input$distanceFilterColor, {
-      updateColorBy(input$distanceFilterColor, session , "distanceFilterColor")  
-    if(!input$distanceFilterColor){
-      checkOtherColorBySelection(session, input, "distanceFilterColor")
-    }
+      updateColorBy(input$distanceFilterColor, session, input, "distanceFilterColor")  
   })
-  
   observeEvent(input$lossFilterColor, {
-    updateColorBy(input$lossFilterColor, session , "lossFilterColor")  
-    if(!input$lossFilterColor){
-      checkOtherColorBySelection(session, input, "lossFilterColor")
-    }
+    updateColorBy(input$lossFilterColor, session, input, "lossFilterColor")  
   })
-  
   observeEvent(input$injuriesFilterColor, {
-    updateColorBy(input$injuriesFilterColor, session , "injuriesFilterColor")  
-    if(!input$injuriesFilterColor){
-      checkOtherColorBySelection(session, input, "injuriesFilterColor")
-    }
+    updateColorBy(input$injuriesFilterColor, session, input, "injuriesFilterColor")  
   })
-  
   observeEvent(input$fatalitiesFilterColor, {
-    updateColorBy(input$fatalitiesFilterColor, session , "fatalitiesFilterColor")  
-    if(!input$fatalitiesFilterColor){
-      checkOtherColorBySelection(session, input, "fatalitiesFilterColor")
-    }
+    updateColorBy(input$fatalitiesFilterColor, session, input, "fatalitiesFilterColor")  
   })
   
   observeEvent(input$magnitudeFilterWidth, {
-    updateWidthBy(input$magnitudeFilterWidth, session , "magnitudeFilterWidth")  
+    updateWidthBy(input$magnitudeFilterWidth, session, input, "magnitudeFilterWidth")  
   })
   observeEvent(input$distanceFilterWidth, {
-    updateWidthBy(input$distanceFilterWidth, session , "distanceFilterWidth")  
+    updateWidthBy(input$distanceFilterWidth, session, input, "distanceFilterWidth")  
   })
   observeEvent(input$lossFilterWidth, {
-    updateWidthBy(input$lossFilterWidth, session , "lossFilterWidth")  
+    updateWidthBy(input$lossFilterWidth, session, input, "lossFilterWidth")  
   })
   observeEvent(input$injuriesFilterWidth, {
-    updateWidthBy(input$injuriesFilterWidth, session , "injuriesFilterWidth")  
+    updateWidthBy(input$injuriesFilterWidth, session, input, "injuriesFilterWidth")  
   })
   observeEvent(input$fatalitiesFilterWidth, {
-    updateWidthBy(input$fatalitiesFilterWidth, session , "fatalitiesFilterWidth")  
+    updateWidthBy(input$fatalitiesFilterWidth, session, input, "fatalitiesFilterWidth")  
   })
   
-  observe({
+  observe({ # This should not be observeEvent
     if (ignoreNextMag) {
       magnitudesSelected <<- input$magGroup
       ignoreNextMag <<- !ignoreNextMag
@@ -423,19 +364,6 @@ server <- function(input, output, session) {
       updateCheckboxGroupInput(session, 'magGroup', choices = magnitudes, selected = newMagnitudes)
       magnitudesSelected <<- newMagnitudes
     }
-  })
-
-  observe({
-    label <- if(input$measurementRadio == "Imperial") "yards" else "meters"
-    maxValue <- max(if(input$measurementRadio == "Imperial") data$wid else data$widm)
-    updateSliderInput(session, "widthSlider", label = label, max = maxValue, value = c(0, maxValue))
-    
-    label <- if(input$measurementRadio == "Imperial") "miles" else "kilometers"
-    maxValue <- max(if(input$measurementRadio == "Imperial") data$len else data$lenkm)
-    updateSliderInput(session, "lengthSlider", label = label, max = maxValue, value = c(0, maxValue))
-
-    maxValue <- max(if(input$measurementRadio == "Imperial") data$chidist else data$chidistkm)
-    updateSliderInput(session, "distanceSlider", label = label, max = maxValue, value = c(0, maxValue))
   })
   
   observe({
