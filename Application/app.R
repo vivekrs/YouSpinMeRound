@@ -40,8 +40,8 @@ JScode <-
       var vals = [0];
       var powStart = 10;
       var powStop = 2;
-      for (i = powStart; i >= powStop; i--) {
-        var val = Math.pow(10, -i);
+      for (i = powStop; i <= powStart; i++) {
+        var val = Math.pow(10, i);
         val = parseFloat(val.toFixed(8));
         vals.push(val);
       }
