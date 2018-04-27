@@ -7,6 +7,10 @@ library(plotly)
 library(shiny)
 library(shinyBS)
 
+
+
+
+
 colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor',
                   'fatalitiesFilterColor')
 widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth','lossFilterWidth','injuriesFilterWidth','fatalitiesFilterWidth')
@@ -28,6 +32,24 @@ allMag <- c("All")
 magnitudes <- c(levels(data$mag), allMag)
 magnitudesSelected <- c()
 ignoreNextMag <- FALSE
+
+
+JScode <-
+  "$(function() {
+    setTimeout(function(){
+      var vals = [0];
+      var powStart = 10;
+      var powStop = 2;
+      for (i = powStart; i >= powStop; i--) {
+        var val = Math.pow(10, -i);
+        val = parseFloat(val.toFixed(8));
+        vals.push(val);
+      }
+      $('#lossSlider').data('ionRangeSlider').update({'values':vals})
+    }, 5)})"
+
+
+
 
 #creates button group for filtering based on color/width
 createButtonGroup <- function(filter_id) {
@@ -98,7 +120,7 @@ getMagChart<- function() {
     layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus)
 }
 
-ui <- fluidPage(
+ui <- fluidPage(tags$head(tags$script(HTML(JScode))), 
   tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
   div(
     id = "container",
