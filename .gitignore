@@ -3,4 +3,5 @@
 /.vs
 */bin
 */obj
-.R*
+.RData
+.Rhistory

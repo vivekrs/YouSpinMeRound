@@ -9,6 +9,7 @@ namespace Munging
 {
     public class TornadoData
     {
+        private const double Tolerance = 0.001;
         private static readonly Dictionary<int, string> magnitudes = new Dictionary<int, string>
         {
             {-9, "Unknown"},
@@ -137,6 +138,12 @@ namespace Munging
 
             widm = string.Format("{0:0.00}", double.Parse(wid) * 0.9144);
             lenkm = string.Format("{0:0.00}", double.Parse(len) * 1.609344);
+
+            if (Math.Abs(elat) < Tolerance && Math.Abs(elon) < Tolerance)
+            {
+                elat = slat;
+                elon = slon;
+            }
         }
 
         private double GetDistanceFromLatLonInKm(double lat1, double lon1, double lat2, double lon2)

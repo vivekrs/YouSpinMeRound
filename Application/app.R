@@ -150,7 +150,7 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
         div(
           id = "yearDiv",
           class = "filterContainer",
-          sliderInput("yearSlider", "", min = 1950, max = 2017, value = c(2000, 2017), step = 1,
+          sliderInput("yearSlider", "#", min = 1950, max = 2017, value = c(2000, 2017), step = 1,
             sep = "", width = "100%", animate = animationOptions(interval = 300, loop = FALSE))
         )
       ),
@@ -163,7 +163,7 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
         div(
           id = "magnitudeDiv",
           class = "filterContainer",
-          checkboxGroupInput("magGroup", label = "", choices = magnitudes, selected = "All")
+          checkboxGroupInput("magGroup", label = "F-Scale", choices = magnitudes, selected = "All")
         )
       ),
       

@@ -172,6 +172,8 @@ Licence URI: http://www.os-templates.com/template-terms
               <li>For yr:om = 2001:592, NoOfStates was incorrectly set to 0, probably because FIPS1 is 0. This has been updated
                 to 1 State, and FIPS2 has been moved to FIPS1.</li>
               <li>For yr:om = 2011:291657, ns:sn:sg 1:0:-9 changed to 1:1:1 since there is only 1 record for this instance.</li>
+              <li>In 26,363 instances (one instance from 2 states, the rest from single state tornadoes), elat and elon values 
+                were set to 0. These have been updated to the slat and slon values respectively.</li>
               <li>Some counties are repeated multiple times within the same tornado instance. These have been deduplicated.</li>
             </ul>
           </ul>
