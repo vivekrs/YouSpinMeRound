@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -12,7 +11,7 @@ namespace Munging
     {
         private static void Main(string[] args)
         {
-            new TornadoDataMunging().Munge(args[0], args[1]);
+            new TornadoDataMunging().Munge(args[0], args[1], args[2]);
         }
     }
 
@@ -20,7 +19,7 @@ namespace Munging
     {
         private readonly List<TornadoData> _result = new List<TornadoData>();
 
-        public void Munge(string inputFilename, string outputFilename)
+        public void Munge(string inputFilename, string allDataFilename, string countyDataFilename)
         {
             using (TextReader inputFile = new StreamReader(inputFilename, Encoding.UTF8))
             {
@@ -60,11 +59,37 @@ namespace Munging
                 }
             }
 
-            using (TextWriter outputFile = new StreamWriter(outputFilename, false, Encoding.UTF8))
+            using (TextWriter outputFile = new StreamWriter(allDataFilename, false, Encoding.UTF8))
             {
                 var csv = new CsvWriter(outputFile);
                 csv.Configuration.RegisterClassMap<TornadoDataWriter>();
                 csv.WriteRecords(_result);
+            }
+
+            using (TextWriter outputFile = new StreamWriter(countyDataFilename, false, Encoding.UTF8))
+            {
+                var data = from tornado in _result
+                    from county in tornado.fipsCodes
+                    let geoId = $"0500000US{tornado.stf:D2}{county:D3}"
+                    select new
+                    {
+                        geoId,
+                        tornado.inj,
+                        tornado.fat,
+                        tornado.dollarloss
+                    };
+                var groupings = from t in data
+                    group t by t.geoId
+                    into grp
+                    select new
+                    {
+                        geoId = grp.Key,
+                        inj = grp.Sum(t => t.inj),
+                        fat = grp.Sum(t => t.fat),
+                        dollarloss = grp.Sum(t => t.dollarloss)
+                    };
+
+                new CsvWriter(outputFile).WriteRecords(groupings);
             }
         }
 

@@ -7,10 +7,6 @@ library(plotly)
 library(shiny)
 library(shinyBS)
 
-
-
-
-
 colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor',
                   'fatalitiesFilterColor')
 widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth','lossFilterWidth','injuriesFilterWidth','fatalitiesFilterWidth')

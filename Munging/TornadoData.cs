@@ -86,13 +86,13 @@ namespace Munging
         public string time { get; set; }
         public string tz { get; set; }
         public string st { get; set; }
-        public string stf { get; set; }
+        public int stf { get; set; }
         public int stn { get; set; }
         public string mag { get; set; }
         public int inj { get; set; }
         public int fat { get; set; }
         public string loss { get; set; }
-        public string dollarloss { get; set; }
+        public long dollarloss { get; set; }
         public string closs { get; set; }
         public double slat { get; set; }
         public double slon { get; set; }
@@ -126,10 +126,11 @@ namespace Munging
             hr = int.Parse(time.Split(':')[0]);
             if (int.TryParse(mag, out var m))
                 mag = magnitudes[m];
-            dollarloss = loss == "0" ? "NA" :
+            dollarloss = (long)decimal.Parse(
+                loss == "0" ? "0" : //"NA" :
                 yr < 1996 ? "5" + new string('0', int.Parse(loss)) :
                 yr < 2016 ? $"{decimal.Parse(loss) * 1000000}" :
-                loss;
+                loss);
             fips = string.Join(';', fipsCodes.Distinct());
 
             var chiDist = GetDistanceFromLatLonInKm(slat, slon, 41.881832, -87.623177);
