@@ -117,7 +117,7 @@ namespace Munging
 
         public IEnumerable<int> GetFipsCodes()
         {
-            return new[] {f1, f2, f3, f4}.Where(f => f != 0);
+            return new[] { f1, f2, f3, f4 }.Where(f => f != 0);
         }
 
         public void UpdateData()
@@ -131,7 +131,7 @@ namespace Munging
                 yr < 1996 ? "5" + new string('0', int.Parse(loss)) :
                 yr < 2016 ? $"{decimal.Parse(loss) * 1000000}" :
                 loss);
-            fips = string.Join(';', fipsCodes.Distinct());
+            fips = fipsCodes.Distinct().Select(f => $":{f}:").Aggregate(string.Empty, (a, b) => a + b);
 
             var chiDist = GetDistanceFromLatLonInKm(slat, slon, 41.881832, -87.623177);
             chidistkm = string.Format("{0:0.00}", chiDist);
