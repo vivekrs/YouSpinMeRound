@@ -128,32 +128,51 @@ createColorButtonGroup <- function(filter_id) {
       )
 }
 
-getMagChart<- function() {
-  # x<-switch (chartBy,
-  #            'year' = 'yr',
-  #            'month' = 'mo',
-  #            'hour' = 'hr',
-  #            'dist' = '~chidist'
-  # )
+getMagnitudeChart<- function(df, chartBy) {
+  x<-switch (chartBy,
+             'Year' = 'yr',
+             'month' = 'mo',
+             'hour' = 'hr',
+             'dist' = 'chidist',
+             'county' = 'county'
+  )
   
-  yrcount<-subset(data, st=='IL') %>% count(yr, mag) %>% group_by(yr) %>% mutate(percent = n/sum(n))
+  # yrcount<-subset(data, st=='IL') %>% count(yr, mag) %>% group_by(yr) %>% mutate(percent = n/sum(n))
   
   updatemenus <-list(
     list(
       type = 'buttons',
       buttons = list(
         list(method = "restyle",
-             args = list("y", list(data$n)),  # put it in a list
-             label = "Show Number"),
+             args = list("y", list(df$count)),  # put it in a list
+             label = "Show Count"),
         list(method = "restyle",
-             args = list("y", list(data$percent*100)),  # put it in a list
+             args = list("y", list(df$percent*100)),  # put it in a list
              label = "Show Percent")))
   )
   
-  # plot_ly(data, type = 'bar', x = ~get(x), y = ~n, marker = list(color = ~mag, showscale = TRUE)) %>% 
-  #   layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus)
-  plot_ly(yrcount, type = 'bar', x = ~yr, y = ~n, marker = list(color = ~mag, showscale = TRUE)) %>% 
-    layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus)
+  return(plot_ly(df, type = 'bar', x = ~get(x), y = ~count, marker = list(color = ~as.numeric(df$mag), showscale = TRUE, colorbar=list(tickmode='array',tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))))) %>%
+           layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus))
+}
+
+getParCoordChart<-function(df,chartBy) {
+  x<-switch (chartBy,
+             'Year' = 'yr',
+             'month' = 'mo',
+             'hour' = 'hr',
+             'dist' = 'chidist',
+             'county' = 'county'
+  )
+  
+  return(df %>% plot_ly(type='parcoords', line=list(color=~as.numeric(mag), showscale=T, colorbar=list(tickmode='array',tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag)))),
+                           dimensions = list(
+                             list(label=chartBy, values=~get(x), range = c(~min(get(x)),~max(get(x)))),
+                             list(label='Magnitude', values=~as.numeric(mag),tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))),
+                             list(label='Injuries', values=~inj, range = c(~min(inj),~max(inj))),
+                             list(label='Fatalities', values=~fat, range = c(~min(fat),~max(fat))),
+                             list(label='Loss ($)', values=~dl, range = c(~min(dl),~max(dl)))
+                           ))
+         )
 }
 
 getChartData <- function(data, x){
@@ -281,9 +300,33 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
           "sampleMap2", width = "100%", height = "100%"
         )),
     div(id = "plotOne",
-        plotOutput("samplePlot1", width = "100%")),
+        tabsetPanel(
+          type = 'tabs',
+          id='chartbox1',
+          tabPanel(
+            'Parallel Coordinates',
+            plotlyOutput('parcoordchart1')
+          ),
+          tabPanel(
+            'Count and Percent',
+            plotlyOutput('countpercent1')
+          )
+        )
+    ),
     div(id = "plotTwo",
-        plotOutput("samplePlot2", width = "100%"))
+        tabsetPanel(
+          type = 'tabs',
+          id='chartbox2',
+          tabPanel(
+            'Parallel Coordinates',
+            plotlyOutput('parcoordchart2')
+          ),
+          tabPanel(
+            'Count and Percent',
+            plotlyOutput('countpercent2')
+          )
+        )
+    )
   )
 )
 
@@ -524,7 +567,22 @@ server <- function(input, output, session) {
               lng = -87.623177,
               zoom = 4)
   })
-  output$samplePlot1<-renderPlot({getMagChart()})
+  observe({
+    chartdata<-subset(data, st=='TX')%>%group_by(yr, mag)%>%summarise(fat=sum(fat), inj=sum(inj), dl=sum(dollarloss, na.rm=TRUE), count=n())%>%group_by(yr)%>%mutate(percent=count*100/sum(count))
+    output$parcoordchart1<-renderPlotly({
+      getParCoordChart(chartdata, 'Year')
+    })
+    output$countpercent1<-renderPlotly({
+      getMagnitudeChart(chartdata, 'Year')
+    })
+    
+    output$parcoordchart2<-renderPlotly({
+      getParCoordChart(chartdata, 'Year')
+    })
+    output$countpercent2<-renderPlotly({
+      getMagnitudeChart(chartdata, 'Year')
+    })
+  })
 }
 
 shinyApp(ui = ui, server = server)
