@@ -1,10 +1,14 @@
 library(rgdal)
+library(scales)
 library(leaflet)
 library(leaflet)    
 library(shiny)
 library(shinydashboard)
+library(dplyr)
 
 data <- read.csv("data/alldata.csv", fileEncoding = "UTF-8-BOM")
+
+county_heatmap <- read.csv("data/countydata.csv", fileEncoding = "UTF-8-BOM")
 
 
 uscounties <-  rgdal::readOGR("uscounties.geojson")
@@ -13,12 +17,18 @@ usstates <-  rgdal::readOGR("usstates.geojson")
 
 state_popup <- paste0("<strong>Name: </strong>", 
                       usstates$NAME)
+
+uscounties<- merge(uscounties , county_heatmap , by.x="GEO_ID", by.y = "geoId")
+
+uscounties[is.na(uscounties$inj),"inj"]<-0
+
 counties_popup <- paste0("<strong>Name: </strong>", 
-                      uscounties$NAME)
+                      uscounties$NAME , " Injuries:",uscounties$inj)
 
 
 state <- TRUE
-
+heatmap <- TRUE
+heatmapby<- "inj"
 #helper function to get ctf and stf from map input
 code_get <- function(id ,  state = FALSE)
 {
@@ -37,8 +47,10 @@ code_get <- function(id ,  state = FALSE)
 
 
 
-draw_tracks <- function(map , df )
+draw_tracks <- function(map , df , heatmap )
 {
+
+ if(!heatmap){ 
   colorNumeric(c("#00FF15", "#faff00","#FF0000", "#17129e"), 
              domain = as.numeric(df$inj),
              alpha = FALSE) -> pal
@@ -49,7 +61,7 @@ draw_tracks <- function(map , df )
       , color = pal(as.numeric(df[i,c('inj')]))
       )
     
-  }
+  }}
 return (map)
 }
 
@@ -72,7 +84,7 @@ ui <- fluidPage(
 server <- function( input, output, session ){
   
   # function to create foundational map
-  foundational.map <- function(bool){
+  foundational.map <- function(state ,heatmap , heatmapby){
     y <- leaflet() %>%
       addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
       addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
@@ -86,7 +98,7 @@ server <- function( input, output, session ){
       setView(lat = 41.881832,
               lng = -87.623177,
               zoom = 4)
-    if(bool){
+    if(state & !heatmap){
      y <- y%>%
       addPolygons( data = usstates
                    , fillOpacity = 0
@@ -95,7 +107,7 @@ server <- function( input, output, session ){
                    , weight = 2
                    , layerId = usstates$GEO_ID
                    , group = "click.list" , popup = state_popup)}
-    else{
+    else if( !state & !heatmap){
 
      y <- y%>%
       addPolygons( data = uscounties
@@ -106,6 +118,19 @@ server <- function( input, output, session ){
                    , layerId = uscounties$GEO_ID
                    , group = "click.list" , popup = counties_popup)
 
+    }
+    else if(heatmap){
+
+      y <- y%>%
+      addPolygons( data = uscounties
+                   , fillOpacity = rescale(uscounties[[heatmapby]] , c(0,1)) 
+                   , opacity = rescale(uscounties[[heatmapby]] , c(0,1)) 
+                   , color = "#FF0000"
+                   , weight = 2
+                   , layerId = uscounties$GEO_ID
+                   , group = "click.list" , popup = counties_popup)
+
+
     } 
 
       y 
@@ -115,9 +140,9 @@ server <- function( input, output, session ){
   # myMap_reval <- reactiveVal(foundational.map())
   output$myMap <- renderLeaflet({
      
-    map<- foundational.map(state) 
+    map<- foundational.map(state , heatmap , heatmapby) 
       
-    draw_tracks(map , data)
+    draw_tracks(map , data , heatmap)
 
     #myMap_reval()
   }) 
