@@ -31,6 +31,9 @@ counties_popup <- paste0("<strong>Name: </strong>",
                       uscounties$NAME , " Injuries:",uscounties$inj)
 
 
+geoid<- list(stf=vector() , ctf= vector())
+group<-list(id=vector())
+
 state <- FALSE
 heatmap <- FALSE
 heatmapby<- "inj"
@@ -52,9 +55,9 @@ code_get <- function(id ,  state = FALSE)
 
 
 
-draw_tracks <- function(map , df , heatmap )
+draw_tracks <- function(map , df , heatmap , group )
 {
-
+  print(group)
  if(!heatmap){ 
   colorNumeric(c("#00FF15", "#faff00","#FF0000", "#17129e"), 
              domain = as.numeric(df$inj),
@@ -144,28 +147,38 @@ server <- function( input, output, session ){
   }
   
   # reactiveVal for the map object, and corresponding output object.
-  # myMap_reval <- reactiveVal(foundational.map())
+   myMap_reval <- reactiveVal(foundational.map(state , heatmap , heatmapby))
   output$myMap <- renderLeaflet({
      
-    map<- foundational.map(state , heatmap , heatmapby) 
+    map<-  myMap_reval()
       
-    draw_tracks(map , data , heatmap)
+    draw_tracks(map , data , heatmap ,  group)
 
-    #myMap_reval()
+    #
   }) 
   
   # To hold the selected map region id use it to get the state or county name.
-  click.list <- shiny::reactiveValues( ids = vector() )
+  
+  
   
   shiny::observeEvent( input$myMap_shape_click, ignoreNULL = T,ignoreInit = T, {
     
     click <- input$myMap_shape_click
-    click.list$ids <- click$id 
+    
+    geoid$stf <- code_get(click$id,state)$stf
+    geoid$ctf <- code_get(click$id,state)$ctf
     #lines.of.interest <- us[ which( us$GEO_ID %in% click.list$ids ) , ] # for later
-    print(code_get(click$id,state))
+    print(geoid)
  
   }) # end of shiny::observeEvent({})
    
+
+  shiny::observeEvent( input$myMap_groups, ignoreNULL = T,ignoreInit = T, {
+    
+    click <- input$myMap_groups
+    group$id <- click
+    print(group)
+  }) 
 
 
 } 
