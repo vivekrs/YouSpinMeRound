@@ -12,6 +12,22 @@ print(paste(Sys.time(), "Init"))
 colorByArray <- c('magnitudeFilterColor', 'widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor', 'fatalitiesFilterColor')
 widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth', 'lossFilterWidth', 'injuriesFilterWidth', 'fatalitiesFilterWidth')
 
+darkPalette <- c('#616161','#FFE0B2','#FFCC80','#FFA726','#FF9800','#FB8C00','#F57C00','#E65100')
+lightPalette <- c('#c7e9b4','#7fcdbb','#41b6c4','#1d91c0','#225ea8','#253494','#081d58')
+highContrastPalette <- c('#ffd59b','#ffa474','#f47461','#db4551','#b81b34','#8b0000','#3f0000')
+satellitePalette <- c('#FFE0B2','#FFCC80','#FFA726','#FB8C00','#F57C00','#E65100','#702800')
+getPalette <- function(layer){
+  palette <- switch(
+    layer,
+    "Dark" = darkPalette,
+    "Light" = lightPalette,
+    "Satellite" = satellitePalette,
+    "Minimal" = lightPalette,
+    "High Contrast" = highContrastPalette
+  )
+  return(palette)
+}
+
 months <- c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
 monthsDf <- data.frame(months, c(1:12))
 colnames(monthsDf) <- c('MonthName', 'MonthNumber')
@@ -24,7 +40,7 @@ print(paste(Sys.time(), "Loading countydata.csv"))
 county_heatmap <- read.csv("data/countydata.csv", fileEncoding = "UTF-8-BOM")
 print(paste(Sys.time(), "Loading uscounties.geojson"))
 uscounties <- rgdal::readOGR("data/uscounties.geojson")
-uscounties <- merge(uscounties, county_heatmap, by.x="GEO_ID", by.y = "geoId")
+uscounties <- sp::merge(uscounties, county_heatmap, by.x="GEO_ID", by.y = "geoId")
 uscounties[is.na(uscounties$inj), "inj"] <- 0
 counties_popup <- paste0("<strong>County: </strong>", uscounties$NAME, 
                          "<strong>Injuries: </strong>", uscounties$inj)
@@ -34,6 +50,8 @@ usstates <- rgdal::readOGR("data/usstates.geojson")
 state_popup <- paste0("<strong>State: </strong>", usstates$NAME)
 
 print(paste(Sys.time(), "Initializing Functions"))
+colorby <- "mag"
+widthby <- "fat"
 heatmapby <- "inj"
 
 pickOptions <- c("Pick a State", "Pick a County", "Show HeatMap")
@@ -64,37 +82,42 @@ draw_tracks <- function(map, df, heatmap, group )
 }
 
 # function to create foundational map
-foundational.map <- function(state, heatmap, heatmapby) {
+foundational.map <- function(heatmapby) {
   y <- leaflet() %>%
     addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
     addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
     addProviderTiles(providers$Esri.WorldImagery, group = 'Satellite') %>%
     addProviderTiles(providers$Esri.WorldGrayCanvas, group = 'Minimal') %>%
-    addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
+    addProviderTiles(providers$Stamen.TonerLite, group = 'High Contrast') %>%
     setView(lat = 41.881832, lng = -87.623177, zoom = 4)
   
+  print("Adding States")
   y <- y %>%
     addPolygons(
       data = usstates, 
       fillOpacity = 0, 
       opacity = 0.2, 
-      color = "#000000", 
-      weight = 2, 
+      color = "#757575", 
+      weight = 0.5, 
       layerId = usstates$GEO_ID, 
       group = "Pick a State", 
       popup = state_popup
     )
+
+  print("Adding Counties")
   y <- y %>%
     addPolygons(
       data = uscounties, 
       fillOpacity = 0, 
       opacity = 0.2, 
-      color = "#000000", 
-      weight = 2, 
+      color = "#757575", 
+      weight = 0.5, 
       layerId = uscounties$GEO_ID, 
       group = "Pick a County", 
       popup = counties_popup
     )
+
+  print("Adding HeatMap")
   y <- y %>%
     addPolygons(
       data = uscounties, 
@@ -109,7 +132,7 @@ foundational.map <- function(state, heatmap, heatmapby) {
 
   y <- y %>% 
     addLayersControl(
-      baseGroups = c("Dark", "Light", "Satellite", "Minimal", "Colorblind Safe"), 
+      baseGroups = c("Dark", "Light", "Satellite", "Minimal", "High Contrast"), 
       overlayGroups = pickOptions, 
       options = layersControlOptions(collapsed = TRUE)
     ) %>% hideGroup(pickOptions)
@@ -471,7 +494,8 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
 )
 
 updateColorBy <-
-  function(isSelected, session, input, idOfSelectedColorBy) {
+  function(isSelected, session, input, idOfSelectedColorBy, field) {
+    colorby <<- field
     if (isSelected) {
       for (i in colorByArray) {
         updatePrettyToggle(session = session, inputId = i, value = i == idOfSelectedColorBy)
@@ -490,7 +514,8 @@ updateColorBy <-
   }
 
 updateWidthBy <-
-  function(isSelected, session, input, idOfSelectedWidthBy) {
+  function(isSelected, session, input, idOfSelectedWidthBy, field) {
+    widthby <<- field
     if (isSelected) {
       for (i in widthByArray) {
         updatePrettyToggle(session = session, inputId = i, value = i == idOfSelectedWidthBy)
@@ -552,41 +577,41 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$magnitudeFilterColor, {
-    updateColorBy(input$magnitudeFilterColor, session, input, "magnitudeFilterColor") 
+    updateColorBy(input$magnitudeFilterColor, session, input, "magnitudeFilterColor", "mag") 
   })
   observeEvent(input$widthFilterColor, {
-    updateColorBy(input$widthFilterColor, session, input, "widthFilterColor") 
+    updateColorBy(input$widthFilterColor, session, input, "widthFilterColor", if(input$measurementRadio == "Imperial") "wid" else "widm") 
   })
   observeEvent(input$lengthFilterColor, {
-    updateColorBy(input$lengthFilterColor, session, input, "lengthFilterColor") 
+    updateColorBy(input$lengthFilterColor, session, input, "lengthFilterColor", if(input$measurementRadio == "Imperial") "len" else "lenkm") 
   })
   observeEvent(input$distanceFilterColor, {
-    updateColorBy(input$distanceFilterColor, session, input, "distanceFilterColor") 
+    updateColorBy(input$distanceFilterColor, session, input, "distanceFilterColor", if(input$measurementRadio == "Imperial") "chidist" else "chidistkm") 
   })
   observeEvent(input$lossFilterColor, {
-    updateColorBy(input$lossFilterColor, session, input, "lossFilterColor") 
+    updateColorBy(input$lossFilterColor, session, input, "lossFilterColor", "dollarloss") 
   })
   observeEvent(input$injuriesFilterColor, {
-    updateColorBy(input$injuriesFilterColor, session, input, "injuriesFilterColor") 
+    updateColorBy(input$injuriesFilterColor, session, input, "injuriesFilterColor", "inj") 
   })
   observeEvent(input$fatalitiesFilterColor, {
-    updateColorBy(input$fatalitiesFilterColor, session, input, "fatalitiesFilterColor") 
+    updateColorBy(input$fatalitiesFilterColor, session, input, "fatalitiesFilterColor", "fat") 
   })
   
   observeEvent(input$magnitudeFilterWidth, {
-    updateWidthBy(input$magnitudeFilterWidth, session, input, "magnitudeFilterWidth") 
+    updateWidthBy(input$magnitudeFilterWidth, session, input, "magnitudeFilterWidth", "mag") 
   })
   observeEvent(input$distanceFilterWidth, {
-    updateWidthBy(input$distanceFilterWidth, session, input, "distanceFilterWidth") 
+    updateWidthBy(input$distanceFilterWidth, session, input, "distanceFilterWidth", if(input$measurementRadio == "Imperial") "chidist" else "chidistkm")
   })
   observeEvent(input$lossFilterWidth, {
-    updateWidthBy(input$lossFilterWidth, session, input, "lossFilterWidth") 
+    updateWidthBy(input$lossFilterWidth, session, input, "lossFilterWidth", "dollarloss") 
   })
   observeEvent(input$injuriesFilterWidth, {
-    updateWidthBy(input$injuriesFilterWidth, session, input, "injuriesFilterWidth") 
+    updateWidthBy(input$injuriesFilterWidth, session, input, "injuriesFilterWidth", "inj") 
   })
   observeEvent(input$fatalitiesFilterWidth, {
-    updateWidthBy(input$fatalitiesFilterWidth, session, input, "fatalitiesFilterWidth") 
+    updateWidthBy(input$fatalitiesFilterWidth, session, input, "fatalitiesFilterWidth", "fat") 
   })
   
   observe({ # This should not be observeEvent
@@ -720,7 +745,7 @@ server <- function(input, output, session) {
     }
   }) 
   
-  myMap_reval <- reactiveVal(foundational.map(state, heatmap, heatmapby))
+  myMap_reval <- reactiveVal(foundational.map(heatmapby))
   group<-list(id=vector())
 
   prev1<-reactiveValues(id = vector())
@@ -739,30 +764,42 @@ server <- function(input, output, session) {
   })
   
   observe({
-    if (length(prev1$id) == 0)
-    {
-      lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state1Select, ".geojson"))
-      leafletProxy("sampleMap1", session) %>% addPolylines(data = lines, layerId = lines$tornadoId)
-    }
-    else
-    {
-      lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state1Select, ".geojson"))
-      leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id) %>% addPolylines(data = lines, layerId = lines$tornadoId)
-    }
-    prev1$id <- lines$tornadoId
+    print("Observing 1")
+    if (length(prev1$id) != 0)
+      leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id)
+    
+    lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state1Select, ".geojson"))
+    mergedData <- merge(lines, chart1Data, by.x = "tornadoId",  by.y = "id")
+    pal <- colorQuantile(
+      getPalette(input$sampleMap1_groups[1]), domain = unique(chart1Data[[colorby]]), 7, reverse = FALSE)
+    
+    leafletProxy("sampleMap1", session) %>% addPolylines(
+      data = lines,
+      layerId = lines$tornadoId,
+      color = pal(chart1Data[[colorby]]),
+      opacity = 0.7
+    )
+    
+    prev2$id <- lines$tornadoId
   })
   
   observe({
-    if (length(prev2$id) == 0)
-    {
-      lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state2Select, ".geojson"))
-      leafletProxy("sampleMap2", session) %>% addPolylines(data = lines, layerId = lines$tornadoId)
-    }
-    else
-    {
-      lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state2Select, ".geojson"))
-      leafletProxy("sampleMap2", session) %>% removeShape(layerId = prev2$id) %>% addPolylines(data = lines, layerId = lines$tornadoId)
-    }
+    print("Observing 2")
+    if (length(prev2$id) != 0)
+      leafletProxy("sampleMap2", session) %>% removeShape(layerId = prev2$id)
+    
+    lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state2Select, ".geojson"))
+    mergedData <- merge(lines, chart2Data, by.x = "tornadoId",  by.y = "id")
+    pal <- colorQuantile(
+      getPalette(input$sampleMap2_groups[1]), domain = unique(chart2Data[[colorby]]), 7, reverse = FALSE)
+    
+    leafletProxy("sampleMap2", session) %>% addPolylines(
+      data = lines,
+      layerId = lines$tornadoId,
+      color = pal(chart2Data[[colorby]]),
+      opacity = 0.7
+    )
+    
     prev2$id <- lines$tornadoId
   })
   
