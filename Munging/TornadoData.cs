@@ -104,6 +104,7 @@ namespace Munging
         public string widm { get; set; }
         public string chidist { get; set; }
         public string chidistkm { get; set; }
+        public int chidistgrp { get; set; }
         public int ns { get; set; }
         public int sn { get; set; }
         public int sg { get; set; }
@@ -137,6 +138,10 @@ namespace Munging
             chidistkm = string.Format("{0:0.00}", chiDist);
             chidist = string.Format("{0:0.00}", chiDist * 0.6213712);
 
+            chidistgrp = (int)(chiDist / 100);
+            //chidistgrp = (distgrp * 60) + " to " + ((distgrp + 1) * 60) + " miles";
+            //chidistgrpkm = (distgrp * 100) + " to " + ((distgrp + 1) * 100) + " kilometers";
+
             widm = string.Format("{0:0.00}", double.Parse(wid) * 0.9144);
             lenkm = string.Format("{0:0.00}", double.Parse(len) * 1.609344);
 
@@ -166,7 +171,7 @@ namespace Munging
         }
     }
 
-    public sealed class TornadoDataReader : CsvClassMap<TornadoData>
+    public sealed class TornadoDataReader : ClassMap<TornadoData>
     {
         public TornadoDataReader()
         {
@@ -178,12 +183,13 @@ namespace Munging
             Map(m => m.dollarloss).Ignore();
             Map(m => m.chidistkm).Ignore();
             Map(m => m.chidist).Ignore();
+            Map(m => m.chidistgrp).Ignore();
             Map(m => m.widm).Ignore();
             Map(m => m.lenkm).Ignore();
         }
     }
 
-    public sealed class TornadoDataWriter : CsvClassMap<TornadoData>
+    public sealed class TornadoDataWriter : ClassMap<TornadoData>
     {
         public TornadoDataWriter()
         {
