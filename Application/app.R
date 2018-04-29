@@ -545,12 +545,37 @@ server <- function(input, output, session) {
     
     state2Data <- subset(plotData, st == input$state2Select)
     output$state2Count <- renderText(paste(nrow(state2Data), "records"))
-    chart2Data <<- if (input$county2Select == 0) state2Data else
+    county2Data <<- if (input$county2Select == 0) state2Data else
       subset(state2Data, grepl(paste0(":", input$county2Select, ":"), fips, fixed = TRUE))
-    output$county2Count <- renderText(paste(nrow(chart2Data), "records"))
+    output$county2Count <- renderText(paste(nrow(county2Data), "records"))
     
-    print(input$lossSlider)
-    print(getLossValueFromSlider(input$lossSlider))
+    chart2Data <- getChartData(county2Data, switch(input$chartBySelect,
+                                                   "Year" = "yr",
+                                                   "Month" = "mo", 
+                                                   "Hour" = "hr"#,
+                                                   #"Distance from Chicago" = ,
+                                                   #"County"
+    ))
+    
+    output$parcoordchart1<-renderPlotly({
+      getParCoordChart(chart1Data, input$chartBySelect)
+    })
+    output$countpercent1<-renderPlotly({
+      getMagnitudeChart(chart1Data, input$chartBySelect)
+    })
+    
+    output$parcoordchart2<-renderPlotly({
+      getParCoordChart(chart2Data, input$chartBySelect)
+    })
+    output$countpercent2<-renderPlotly({
+      getMagnitudeChart(chart2Data, input$chartBySelect)
+    })
+    output$table1 = DT::renderDataTable({
+      getTable(chart1Data, input$chartBySelect)
+    })
+    output$table2 = DT::renderDataTable({
+      getTable(chart2Data, input$chartBySelect)
+    })
   })
   
   output$sampleMap1 <-  renderLeaflet({
@@ -584,26 +609,7 @@ server <- function(input, output, session) {
               zoom = 4)
   })
   observe({
-    chartdata<-subset(data, st=='TX')%>%group_by(yr, mag)%>%summarise(fat=sum(fat), inj=sum(inj), dl=sum(dollarloss, na.rm=TRUE), count=n())%>%group_by(yr)%>%mutate(percent=count*100/sum(count))
-    output$parcoordchart1<-renderPlotly({
-      getParCoordChart(chartdata, 'Year')
-    })
-    output$countpercent1<-renderPlotly({
-      getMagnitudeChart(chartdata, 'Year')
-    })
     
-    output$parcoordchart2<-renderPlotly({
-      getParCoordChart(chartdata, 'Year')
-    })
-    output$countpercent2<-renderPlotly({
-      getMagnitudeChart(chartdata, 'Year')
-    })
-    output$table1 = DT::renderDataTable({
-      getTable(chartdata, 'Year')
-    })
-    output$table2 = DT::renderDataTable({
-      getTable(chartdata, 'Year')
-    })
   })
 }
 
