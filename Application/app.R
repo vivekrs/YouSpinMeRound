@@ -142,14 +142,23 @@ getMagnitudeChart<- function(df, chartBy) {
   
   updatemenus <-list(
     list(
-      type = 'buttons',
       buttons = list(
         list(method = "restyle",
              args = list("y", list(df$count)),  # put it in a list
              label = "Show Count"),
         list(method = "restyle",
-             args = list("y", list(df$percent*100)),  # put it in a list
-             label = "Show Percent")))
+             args = list("y", list(df$percent)),  # put it in a list
+             label = "Show Percent"),
+        list(method = "restyle",
+             args = list("y", list(df$fat)),  # put it in a list
+             label = "Show Fatalities"),
+        list(method = "restyle",
+             args = list("y", list(df$inj)),  # put it in a list
+             label = "Show Injuries"),
+        list(method = "restyle",
+             args = list("y", list(df$dl)),  # put it in a list
+             label = "Show Loss")
+        ))
   )
   
   return(plot_ly(df, type = 'bar', x = ~get(x), y = ~count, marker = list(color = ~as.numeric(df$mag), showscale = TRUE, colorbar=list(tickmode='array',tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))))) %>%
@@ -177,7 +186,6 @@ getParCoordChart<-function(df,chartBy) {
 }
 
 getChartData <- function(data, x){
-  print(x)
   result <- data %>% group_by_at(c(x, 'mag')) %>% summarise(
     fat = sum(fat),
     inj = sum(inj),
@@ -520,14 +528,16 @@ server <- function(input, output, session) {
     plotData <- subset(plotData, (if(input$measurementRadio == "Imperial") chidist else chidistkm) >= input$distanceSlider[1])
     plotData <- subset(plotData, (if(input$measurementRadio == "Imperial") chidist else chidistkm) <= input$distanceSlider[2])
     
-    plotData <- subset(plotData, dollarloss >= input$lossSlider[1])
-    plotData <- subset(plotData, dollarloss <= input$lossSlider[2])
+    plotData <- subset(plotData, fat >= input$fatalitiesSlider[1])
+    plotData <- subset(plotData, fat <= input$fatalitiesSlider[2])
+    print(input$lossSlider[1])
+    print(input$lossSlider[2])
     
     plotData <- subset(plotData, inj >= input$injuriesSlider[1])
     plotData <- subset(plotData, inj <= input$injuriesSlider[2])
     
-    plotData <- subset(plotData, fat >= getLossValueFromSlider(input$lossSlider[1]))
-    plotData <- subset(plotData, fat <= getLossValueFromSlider(input$lossSlider[2]))
+    plotData <- subset(plotData, dollarloss >= getLossValueFromSlider(input$lossSlider[1]))
+    plotData <- subset(plotData, dollarloss <= getLossValueFromSlider(input$lossSlider[2]))
     
     state1Data <- subset(plotData, st == input$state1Select)
     output$state1Count <- renderText(paste(nrow(state1Data), "records"))
