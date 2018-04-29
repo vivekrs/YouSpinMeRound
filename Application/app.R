@@ -177,12 +177,13 @@ getParCoordChart<-function(df,chartBy) {
 }
 
 getChartData <- function(data, x){
-  result <- data %>% group_by(get(x), mag) %>% summarise(
+  print(x)
+  result <- data %>% group_by_at(c(x, 'mag')) %>% summarise(
     fat = sum(fat),
     inj = sum(inj),
     dl = sum(dollarloss, na.rm = TRUE),
     count = n()
-  ) %>% group_by(x) %>% mutate(percent = count * 100 / sum(count))
+  ) %>% group_by_at(x) %>% mutate(percent = count * 100 / sum(count))
   
   return(result)
 }
@@ -534,7 +535,7 @@ server <- function(input, output, session) {
       subset(state1Data, grepl(paste0(":", input$county1Select, ":"), fips, fixed = TRUE))
     output$county1Count <- renderText(paste(nrow(county1Data), "records"))
     
-    chart1Data <<- getChartData(county1Data, switch(input$chartBySelect,
+    chart1Data <- getChartData(county1Data, switch(input$chartBySelect,
         "Year" = "yr",
         "Month" = "mo", 
         "Hour" = "hr"#,
