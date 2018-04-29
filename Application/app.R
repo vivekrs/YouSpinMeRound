@@ -18,6 +18,120 @@ times <- c(paste(c(0:4), 'to', c(1:5), 'hr'), '5 hr or more')
 timesDf <- data.frame(times, c(0:5))
 colnames(timesDf) <- c('TimeName', 'TimeNumber')
 
+
+county_heatmap <- read.csv("data/countydata.csv", fileEncoding = "UTF-8-BOM")
+
+
+uscounties <-  rgdal::readOGR("uscounties.geojson")
+
+usstates <-  rgdal::readOGR("usstates.geojson")
+
+state_popup <- paste0("<strong>Name: </strong>", usstates$NAME)
+
+uscounties<- merge(uscounties , county_heatmap , by.x="GEO_ID", by.y = "geoId")
+
+uscounties[is.na(uscounties$inj),"inj"]<-0
+
+counties_popup <- paste0("<strong>Name:</strong>", 
+                      uscounties$NAME, "<strong>Injuries:</strong>",uscounties$inj)
+
+
+
+state <- TRUE
+heatmap <- FALSE
+heatmapby<- "inj"
+
+#helper function to get ctf and stf from map input
+code_get <- function(id ,  state = FALSE)
+{
+  string <- sub(".*US", "", id)
+  code <- list(stf= -1 , ctf = -1)
+  
+  code$stf <- as.numeric(substr(string,0,2))
+  
+  if(!state)
+  {
+    code$ctf<-as.numeric(substr(string,3,5))
+  }
+  return (code)
+  
+}
+
+
+
+draw_tracks <- function(map , df, heatmap , group )
+{
+
+ if(!heatmap & df$stf!=-1){ 
+
+  #lines <-  rgdal::readOGR(paste0("data/GeoJson/",df$stf,".geojson"))
+
+
+  map <- map %>% addPolygons( data = lines )
+
+  }
+ 
+  return (map)
+}
+
+
+
+
+ # function to create foundational map
+foundational.map <- function(state ,heatmap , heatmapby){
+    y <- leaflet() %>%
+      addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
+      addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
+      addProviderTiles(providers$Esri.WorldImagery, group = 'Satellite') %>%
+      addProviderTiles(providers$Esri.WorldGrayCanvas, group = 'Minimal') %>%
+      addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
+      addLayersControl(
+        baseGroups = c("Dark","Light", "Satellite", "Minimal", "Colorblind Safe"),
+        options = layersControlOptions(collapsed = TRUE)
+      ) %>%
+      setView(lat = 41.881832,
+              lng = -87.623177,
+              zoom = 4)
+    if(state & !heatmap){
+     y <- y%>%
+      addPolygons( data = usstates
+                   , fillOpacity = 0
+                   , opacity = 0.2
+                   , color = "#000000"
+                   , weight = 2
+                   , layerId = usstates$GEO_ID
+                   , group = "click.list" , popup = state_popup)}
+    else if( !state & !heatmap){
+
+     y <- y%>%
+      addPolygons( data = uscounties
+                   , fillOpacity = 0
+                   , opacity = 0.2
+                   , color = "#000000"
+                   , weight = 2
+                   , layerId = uscounties$GEO_ID
+                   , group = "click.list" , popup = counties_popup)
+
+    }
+    else if(heatmap){
+
+      y <- y%>%
+      addPolygons( data = uscounties
+                   , fillOpacity = rescale(uscounties[[heatmapby]] , c(0,1)) 
+                   , opacity = rescale(uscounties[[heatmapby]] , c(0,1)) 
+                   , color = "#FF0000"
+                   , weight = 2
+                   , layerId = uscounties$GEO_ID
+                   , group = "heatmap" , popup = counties_popup)
+
+
+    } 
+
+      y 
+  }
+
+
+
 hours <- function(is24Hour) {
   return(if (is24Hour) paste(c(0:23), 'hr') else c('Midnight', paste(c(1:11), 'am'), 'Noon', paste(c(1:11), 'pm')))
 }
@@ -567,6 +681,7 @@ server <- function(input, output, session) {
                                                    #"County"
     ))
     
+
     output$parcoordchart1<-renderPlotly({
       getParCoordChart(chart1Data, input$chartBySelect)
     })
@@ -586,38 +701,99 @@ server <- function(input, output, session) {
     output$table2 = DT::renderDataTable({
       getTable(chart2Data, input$chartBySelect)
     })
+
   })
   
+  myMap_reval <- reactiveVal(foundational.map(state , heatmap , heatmapby))
+  geoid_map1 <- reactiveValues(stf=-1 , ctf= -1)
+geoid_map2 <- reactiveValues(stf=-1 , ctf= -1)
+group<-list(id=vector())
+
+prev1<-reactiveValues(id = vector())
+prev2<-reactiveValues( id = vector())
+
+
   output$sampleMap1 <-  renderLeaflet({
-    leaflet() %>%
-      addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
-      addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
-      addProviderTiles(providers$Esri.WorldImagery, group = 'Satellite') %>%
-      addProviderTiles(providers$Esri.WorldGrayCanvas, group = 'Minimal') %>%
-      addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
-      addLayersControl(
-        baseGroups = c("Dark","Light", "Satellite", "Minimal", "Colorblind Safe"),
-        options = layersControlOptions(collapsed = TRUE)
-      ) %>%
-      setView(lat = 41.881832,
-              lng = -87.623177,
-              zoom = 4)
+   
+   map<-  myMap_reval()
+  
   })
+
   output$sampleMap2 <-  renderLeaflet({
-    leaflet() %>%
-      addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
-      addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
-      addProviderTiles(providers$Esri.WorldImagery, group = 'Satellite') %>%
-      addProviderTiles(providers$Esri.WorldGrayCanvas, group = 'Minimal') %>%
-      addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
-      addLayersControl(
-        baseGroups = c("Dark","Light", "Satellite", "Minimal", "Colorblind Safe"),
-        options = layersControlOptions(collapsed = FALSE)
-      ) %>%
-      setView(lat = 41.881832,
-              lng = -87.623177,
-              zoom = 4)
+  
+   map<-  myMap_reval()
   })
+
+
+  observeEvent( input$sampleMap1_shape_click, ignoreNULL = T,ignoreInit = T, {
+    
+    click1 <- input$sampleMap1_shape_click
+    
+   
+
+  if(geoid_map1$stf==-1)
+    { 
+    
+      geoid_map1$stf <- code_get(click1$id,state)$stf
+      geoid_map1$ctf <- code_get(click1$id,state)$ctf 
+
+    lines <-  rgdal::readOGR(paste0("data/GeoJson/",geoid_map1$stf,".geojson"))
+
+      
+
+      leafletProxy("sampleMap1", session)  %>% addPolylines(data = lines  , layerId = lines$tornadoId)
+     }
+    else
+    {   
+       print("here")
+       geoid_map1$stf <- code_get(click1$id,state)$stf
+       geoid_map1$ctf <- code_get(click1$id,state)$ctf 
+
+    
+      lines <-  rgdal::readOGR(paste0("data/GeoJson/",geoid_map1$stf,".geojson"))
+
+ 
+        leafletProxy("sampleMap1", session)  %>% removeShape(layerId = prev1$id) %>% addPolylines(data = lines , layerId = lines$tornadoId)
+    }
+    prev1$id <- lines$tornadoId
+    
+  })
+
+
+  observeEvent( input$sampleMap2_shape_click, ignoreNULL = T,ignoreInit = T, {
+    
+    click2 <- input$sampleMap2_shape_click
+    
+  
+    
+
+    if(geoid_map2$stf==-1)
+    {   
+      geoid_map2$stf <- code_get(click2$id,state)$stf
+    geoid_map2$ctf <- code_get(click2$id,state)$ctf
+    
+    lines <-  rgdal::readOGR(paste0("data/GeoJson/",geoid_map2$stf,".geojson"))
+
+      leafletProxy("sampleMap2", session)  %>% addPolylines(data = lines  , layerId = lines$tornadoId)
+     }
+    else
+    {   
+      print("here")
+      geoid_map2$stf <- code_get(click2$id,state)$stf
+    geoid_map2$ctf <- code_get(click2$id,state)$ctf
+    
+    lines <-  rgdal::readOGR(paste0("data/GeoJson/",geoid_map2$stf,".geojson"))
+
+
+        leafletProxy("sampleMap2", session)  %>% removeShape(layerId = prev2$id) %>% addPolylines(data = lines , layerId = lines$tornadoId)
+    }
+    prev2$id <- lines$tornadoId
+    #lines.of.interest <- us[ which( us$GEO_ID %in% click.list$ids ) , ] # for later
+    print(geoid_map2)
+ 
+  })
+
+
   observe({
     
   })
