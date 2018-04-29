@@ -7,6 +7,8 @@ library(plotly)
 library(shiny)
 library(shinyBS)
 library(DT)
+library(rgdal)
+library(scales)
 
 print(paste(Sys.time(), "Init"))
 colorByArray <- c('magnitudeFilterColor', 'widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor', 'fatalitiesFilterColor')
@@ -16,7 +18,10 @@ darkPalette <- c('#616161','#FFE0B2','#FFCC80','#FFA726','#FF9800','#FB8C00','#F
 lightPalette <- c('#c7e9b4','#7fcdbb','#41b6c4','#1d91c0','#225ea8','#253494','#081d58')
 highContrastPalette <- c('#ffd59b','#ffa474','#f47461','#db4551','#b81b34','#8b0000','#3f0000')
 satellitePalette <- c('#FFE0B2','#FFCC80','#FFA726','#FB8C00','#F57C00','#E65100','#702800')
+
 getPalette <- function(layer){
+  if(is.null(layer)) return(darkPalette)
+  
   palette <- switch(
     layer,
     "Dark" = darkPalette,
@@ -38,21 +43,35 @@ colnames(timesDf) <- c('TimeName', 'TimeNumber')
 
 print(paste(Sys.time(), "Loading countydata.csv"))
 county_heatmap <- read.csv("data/countydata.csv", fileEncoding = "UTF-8-BOM")
-print(paste(Sys.time(), "Loading uscounties.geojson"))
-uscounties <- rgdal::readOGR("data/uscounties.geojson")
-uscounties <- sp::merge(uscounties, county_heatmap, by.x="GEO_ID", by.y = "geoId")
-uscounties[is.na(uscounties$inj), "inj"] <- 0
-counties_popup <- paste0("<strong>County: </strong>", uscounties$NAME, 
-                         "<strong>Injuries: </strong>", uscounties$inj)
 
-print(paste(Sys.time(), "Loading usstates.geojson"))
-usstates <- rgdal::readOGR("data/usstates.geojson")
-state_popup <- paste0("<strong>State: </strong>", usstates$NAME)
+us_counties <- NULL
+counties_popup <- NULL
+getUsCounties <- function() {
+  if(is.null(us_counties)) {
+    print(paste(Sys.time(), "Loading uscounties.geojson"))
+    us_counties <- rgdal::readOGR("data/uscounties.geojson")
+    us_counties <- merge(us_counties, county_heatmap, by.x="GEO_ID", by.y = "geoId")
+    us_counties[is.na(us_counties$inj), "inj"] <- 0
+
+    counties_popup <<- paste0("<strong>County: </strong>", us_counties$NAME, 
+                         "<br><strong>Injuries: </strong>", us_counties$inj)
+  }
+  return(us_counties)
+}
+
+us_states <- NULL
+states_popup <- NULL
+getUsStates <- function() {
+  if(is.null(us_states)) {
+    print(paste(Sys.time(), "Loading usstates.geojson"))
+    us_states <- rgdal::readOGR("data/usstates.geojson")
+
+    states_popup <<- paste0("<strong>State: </strong>", us_states$NAME)
+  }
+  return(us_states)
+}
 
 print(paste(Sys.time(), "Initializing Functions"))
-colorby <- "mag"
-widthby <- "fat"
-heatmapby <- "inj"
 
 pickOptions <- c("Pick a State", "Pick a County", "Show HeatMap")
 pick <- c()
@@ -83,6 +102,8 @@ draw_tracks <- function(map, df, heatmap, group )
 
 # function to create foundational map
 foundational.map <- function(heatmapby) {
+  print(paste(Sys.time(), "Loading Foundational Map"))
+  
   y <- leaflet() %>%
     addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
     addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
@@ -91,7 +112,7 @@ foundational.map <- function(heatmapby) {
     addProviderTiles(providers$Stamen.TonerLite, group = 'High Contrast') %>%
     setView(lat = 41.881832, lng = -87.623177, zoom = 4)
   
-  print("Adding States")
+  usstates <- getUsStates()
   y <- y %>%
     addPolygons(
       data = usstates, 
@@ -101,32 +122,31 @@ foundational.map <- function(heatmapby) {
       weight = 0.5, 
       layerId = usstates$GEO_ID, 
       group = "Pick a State", 
-      popup = state_popup
+      popup = states_popup
     )
 
-  print("Adding Counties")
+  uscounties <- getUsCounties()
   y <- y %>%
     addPolygons(
-      data = uscounties, 
-      fillOpacity = 0, 
-      opacity = 0.2, 
-      color = "#757575", 
-      weight = 0.5, 
-      layerId = uscounties$GEO_ID, 
-      group = "Pick a County", 
+      data = uscounties,
+      fillOpacity = 0,
+      opacity = 0.2,
+      color = "#757575",
+      weight = 0.5,
+      layerId = uscounties$GEO_ID,
+      group = "Pick a County",
       popup = counties_popup
     )
 
-  print("Adding HeatMap")
   y <- y %>%
     addPolygons(
-      data = uscounties, 
-      fillOpacity = rescale(uscounties[[heatmapby]], c(0, 1)), 
-      opacity = rescale(uscounties[[heatmapby]], c(0, 1)), 
-      color = "#FF0000", 
-      weight = 2, 
-      layerId = paste0(uscounties$GEO_ID, "_HeatMap"), 
-      group = "Show HeatMap", 
+      data = uscounties,
+      fillOpacity = rescale(uscounties[[heatmapby]], c(0, 1)),
+      opacity = rescale(uscounties[[heatmapby]], c(0, 1)),
+      color = "#FF0000",
+      weight = 2,
+      layerId = paste0(uscounties$GEO_ID, "_HeatMap"),
+      group = "Show HeatMap",
       popup = counties_popup
     )
 
@@ -181,8 +201,6 @@ print(paste(Sys.time(), "Loading fipscodes"))
 counties <- read.csv("data/fipscodes.csv", fileEncoding = "UTF-8-BOM")
 
 print(paste(Sys.time(), "Initializing functions"))
-chart1Data <- data
-chart2Data <- data
 
 allMag <- c("All")
 magnitudes <- c(levels(data$mag), allMag)
@@ -534,6 +552,25 @@ updateWidthBy <-
   }
 
 server <- function(input, output, session) {
+  colorby <- reactiveVal("inj")
+  widthby <- reactiveVal("fat")
+  heatmapby <- reactiveVal("inj")
+  
+  county1Data <- reactiveVal(NULL)
+  county2Data <- reactiveVal(NULL)
+
+  chart1Data <- reactiveVal(NULL)
+  chart2Data <- reactiveVal(NULL)
+
+  myMap_reval <- reactiveVal(foundational.map("inj"))
+  group <- list(id=vector())
+
+  prev1 <- reactiveValues(id = vector())
+  prev2 <- reactiveValues(id = vector())
+
+  output$sampleMap1 <- renderLeaflet({ map <- myMap_reval() })
+  output$sampleMap2 <- renderLeaflet({ map <- myMap_reval() })
+
   #show about page
   observeEvent(input$aboutButton, {
     showModal(
@@ -680,52 +717,54 @@ server <- function(input, output, session) {
     
     state1Data <- subset(plotData, stf == input$state1Select)
     output$state1Count <- renderText(paste(nrow(state1Data), "records"))
-    county1Data <<- if (input$county1Select == 0) state1Data else
-      subset(state1Data, grepl(paste0(":", input$county1Select, ":"), fips, fixed = TRUE))
-    output$county1Count <- renderText(paste(nrow(county1Data), "records"))
+    county1Data(
+      if (input$county1Select == 0) state1Data else
+      subset(state1Data, grepl(paste0(":", input$county1Select, ":"), fips, fixed = TRUE)))
+    output$county1Count <- renderText(paste(nrow(county1Data()), "records"))
     
-    chart1Data <- getChartData(county1Data, switch(
+    chart1Data(getChartData(county1Data(), switch(
       input$chartBySelect, 
       "Year" = "yr", 
       "Month" = "mo", 
       "Hour" = "hr"#, 
       #"Distance from Chicago" =, 
       #"County"
-    ))
+    )))
     
     state2Data <- subset(plotData, stf == input$state2Select)
     output$state2Count <- renderText(paste(nrow(state2Data), "records"))
-    county2Data <<- if (input$county2Select == 0) state2Data else
-      subset(state2Data, grepl(paste0(":", input$county2Select, ":"), fips, fixed = TRUE))
-    output$county2Count <- renderText(paste(nrow(county2Data), "records"))
+    county2Data(
+      if (input$county2Select == 0) state2Data else
+      subset(state2Data, grepl(paste0(":", input$county2Select, ":"), fips, fixed = TRUE)))
+    output$county2Count <- renderText(paste(nrow(county2Data()), "records"))
     
-    chart2Data <- getChartData(county2Data, switch(
+    chart2Data(getChartData(county2Data(), switch(
       input$chartBySelect, 
       "Year" = "yr", 
       "Month" = "mo", 
       "Hour" = "hr"#, 
       #"Distance from Chicago" =, 
       #"County"
-    ))
-
+    )))
+    
     output$parcoordchart1<-renderPlotly({
-      getParCoordChart(chart1Data, input$chartBySelect)
+      getParCoordChart(chart1Data(), input$chartBySelect)
     })
     output$countpercent1<-renderPlotly({
-      getMagnitudeChart(chart1Data, input$chartBySelect)
+      getMagnitudeChart(chart1Data(), input$chartBySelect)
     })
     
     output$parcoordchart2<-renderPlotly({
-      getParCoordChart(chart2Data, input$chartBySelect)
+      getParCoordChart(chart2Data(), input$chartBySelect)
     })
     output$countpercent2<-renderPlotly({
-      getMagnitudeChart(chart2Data, input$chartBySelect)
+      getMagnitudeChart(chart2Data(), input$chartBySelect)
     })
     output$table1 = DT::renderDataTable({
-      getTable(chart1Data, input$chartBySelect)
+      getTable(chart1Data(), input$chartBySelect)
     })
     output$table2 = DT::renderDataTable({
-      getTable(chart2Data, input$chartBySelect)
+      getTable(chart2Data(), input$chartBySelect)
     })
   })
   
@@ -743,64 +782,68 @@ server <- function(input, output, session) {
       print (paste("New Pick", pick))
       leafletProxy("sampleMap1", session) %>% hideGroup(toRemove)
     }
-  }) 
-  
-  myMap_reval <- reactiveVal(foundational.map(heatmapby))
-  group<-list(id=vector())
-
-  prev1<-reactiveValues(id = vector())
-  prev2<-reactiveValues(id = vector())
-
-
-  output$sampleMap1 <- renderLeaflet({
-   
-   map<- myMap_reval()
-  
-  })
-
-  output$sampleMap2 <- renderLeaflet({
-  
-   map<- myMap_reval()
   })
   
   observe({
     print("Observing 1")
+    
     if (length(prev1$id) != 0)
       leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id)
     
-    lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state1Select, ".geojson"))
-    mergedData <- merge(lines, chart1Data, by.x = "tornadoId",  by.y = "id")
-    pal <- colorQuantile(
-      getPalette(input$sampleMap1_groups[1]), domain = unique(chart1Data[[colorby]]), 7, reverse = FALSE)
-    
-    leafletProxy("sampleMap1", session) %>% addPolylines(
-      data = lines,
-      layerId = lines$tornadoId,
-      color = pal(chart1Data[[colorby]]),
-      opacity = 0.7
-    )
-    
-    prev2$id <- lines$tornadoId
+    if(nrow(county1Data()) > 0) {
+      lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state1Select, ".geojson"))
+      mergedData <- merge(lines, county1Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
+      uniques <- unique(chart1Data()[[colorby()]])
+      quantiles <- colorQuantile(
+        getPalette(input$sampleMap1_groups[1]), 
+        domain = if(length(uniques) == 1) c(uniques, Inf) else uniques, 
+        n = min(7, length(uniques)))
+      
+      minlat <- min(c(county1Data()$slat, county1Data()$elat))
+      minlon <- min(c(county1Data()$slon, county1Data()$elon))
+      maxlat <- max(c(county1Data()$slat, county1Data()$elat))
+      maxlon <- max(c(county1Data()$slon, county1Data()$elon))
+      
+      leafletProxy("sampleMap1", session) %>% addPolylines(
+        data = mergedData,
+        layerId = mergedData$tornadoId,
+        color = quantiles(chart1Data()[[colorby()]]),
+        opacity = 0.7
+      ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
+      
+      prev1$id <- mergedData$tornadoId
+    }
   })
   
   observe({
     print("Observing 2")
+    
     if (length(prev2$id) != 0)
       leafletProxy("sampleMap2", session) %>% removeShape(layerId = prev2$id)
     
-    lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state2Select, ".geojson"))
-    mergedData <- merge(lines, chart2Data, by.x = "tornadoId",  by.y = "id")
-    pal <- colorQuantile(
-      getPalette(input$sampleMap2_groups[1]), domain = unique(chart2Data[[colorby]]), 7, reverse = FALSE)
-    
-    leafletProxy("sampleMap2", session) %>% addPolylines(
-      data = lines,
-      layerId = lines$tornadoId,
-      color = pal(chart2Data[[colorby]]),
-      opacity = 0.7
-    )
-    
-    prev2$id <- lines$tornadoId
+    if(nrow(county2Data()) > 0) {
+      lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state2Select, ".geojson"))
+      mergedData <- merge(lines, county2Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
+      uniques <- unique(chart2Data()[[colorby()]])
+      quantiles <- colorQuantile(
+        getPalette(input$sampleMap2_groups[1]), 
+        domain = if(length(uniques) == 1) c(uniques, Inf) else uniques, 
+        n = min(7, length(uniques)))
+      
+      minlat <- min(c(county2Data()$slat, county2Data()$elat))
+      minlon <- min(c(county2Data()$slon, county2Data()$elon))
+      maxlat <- max(c(county2Data()$slat, county2Data()$elat))
+      maxlon <- max(c(county2Data()$slon, county2Data()$elon))
+      
+      leafletProxy("sampleMap2", session) %>% addPolylines(
+        data = mergedData,
+        layerId = mergedData$tornadoId,
+        color = quantiles(chart2Data()[[colorby()]]),
+        opacity = 0.7
+      ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
+      
+      prev2$id <- mergedData$tornadoId
+    }
   })
   
   observeEvent(input$sampleMap1_shape_click, ignoreNULL = T, ignoreInit = T, {
