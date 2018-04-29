@@ -383,7 +383,7 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
       div(
         class = "filter-group states", 
         textOutput("state2Count", inline = TRUE), 
-        selectInput("state2Select", "State 2", states, "48"), 
+        selectInput("state2Select", "State 2", states, "6"), 
         textOutput("county2Count", inline = TRUE), 
         selectInput("county2Select", "County 2", c("All"), "All")
       ), 
@@ -794,9 +794,12 @@ server <- function(input, output, session) {
       lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state1Select, ".geojson"))
       mergedData <- merge(lines, county1Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
       uniques <- unique(chart1Data()[[colorby()]])
+      domain <- c(uniques, unique(chart2Data()[[colorby()]]))
+      if(length(domain) == 1) 
+        domain <- c(domain, Inf)
       quantiles <- colorQuantile(
         getPalette(input$sampleMap1_groups[1]), 
-        domain = if(length(uniques) == 1) c(uniques, Inf) else uniques, 
+        domain = domain, 
         n = min(7, length(uniques)))
       
       minlat <- min(c(county1Data()$slat, county1Data()$elat))
@@ -825,9 +828,12 @@ server <- function(input, output, session) {
       lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state2Select, ".geojson"))
       mergedData <- merge(lines, county2Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
       uniques <- unique(chart2Data()[[colorby()]])
+      domain <- c(uniques, unique(chart1Data()[[colorby()]]))
+      if(length(domain) == 1) 
+        domain <- c(domain, Inf)
       quantiles <- colorQuantile(
         getPalette(input$sampleMap2_groups[1]), 
-        domain = if(length(uniques) == 1) c(uniques, Inf) else uniques, 
+        domain = domain, 
         n = min(7, length(uniques)))
       
       minlat <- min(c(county2Data()$slat, county2Data()$elat))
