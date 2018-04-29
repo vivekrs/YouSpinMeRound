@@ -5,14 +5,19 @@ library(leaflet)
 library(shiny)
 library(shinydashboard)
 library(dplyr)
+print(Sys.time())
+
 
 data <- read.csv("data/alldata.csv", fileEncoding = "UTF-8-BOM")
 
 county_heatmap <- read.csv("data/countydata.csv", fileEncoding = "UTF-8-BOM")
 
 
+lines <-  rgdal::readOGR("data/alldata.geojson")
+
 uscounties <-  rgdal::readOGR("uscounties.geojson")
 # us <-  rgdal::readOGR("us-states.geojson")
+
 usstates <-  rgdal::readOGR("usstates.geojson")
 
 state_popup <- paste0("<strong>Name: </strong>", 
@@ -26,8 +31,8 @@ counties_popup <- paste0("<strong>Name: </strong>",
                       uscounties$NAME , " Injuries:",uscounties$inj)
 
 
-state <- TRUE
-heatmap <- TRUE
+state <- FALSE
+heatmap <- FALSE
 heatmapby<- "inj"
 #helper function to get ctf and stf from map input
 code_get <- function(id ,  state = FALSE)
@@ -55,14 +60,16 @@ draw_tracks <- function(map , df , heatmap )
              domain = as.numeric(df$inj),
              alpha = FALSE) -> pal
 
-  for(i in 1:100){
+   print(Sys.time())
+  for(i in 1:2470){
         map <- addPolylines(map, 
       lat = as.numeric(df[i, c('slat','elat' )]), lng = as.numeric(df[i, c('slon', 'elon')])
       , color = pal(as.numeric(df[i,c('inj')]))
       )
     
   }}
-return (map)
+  print(Sys.time())
+  return (map)
 }
 
 
@@ -167,3 +174,7 @@ shiny::shinyApp( ui = ui, server = server)
 
 
 #https://www.r-bloggers.com/plotting-driving-routes-and-rental-data-for-houston-gepaf-gmap-plotly-leaflet/
+
+print(Sys.time())
+foundational.map(FALSE, FALSE, "") %>% addPolygons( data = lines )
+print(Sys.time())

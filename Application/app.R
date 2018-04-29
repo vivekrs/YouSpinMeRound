@@ -7,9 +7,39 @@ library(plotly)
 library(shiny)
 library(shinyBS)
 
-colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor',
-                  'fatalitiesFilterColor')
+colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor', 'fatalitiesFilterColor')
 widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth','lossFilterWidth','injuriesFilterWidth','fatalitiesFilterWidth')
+months <- c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+monthsDf <- data.frame(months, c(1:12))
+colnames(monthsDf) <- c('MonthName', 'MonthNumber')
+
+times <- c(paste(c(0:4), 'to', c(1:5), 'hr'), '5 hr or more')
+timesDf <- data.frame(times, c(0:5))
+colnames(timesDf) <- c('TimeName', 'TimeNumber')
+
+hours <- function(is24Hour) {
+  return(if (is24Hour) paste(c(0:23), 'hr') else c('Midnight', paste(c(1:11), 'am'), 'Noon', paste(c(1:11), 'pm')))
+}
+hoursDf <- function(is24Hour) {
+  hdf <- data.frame(hours(is24Hour), c(0:23))
+  colnames(hdf) <- c('HourName', 'HourNumber')
+  return(hdf)
+}
+
+distanceGroups <- function(isMetric) {
+  values <- (if (isMetric)
+    c(paste('~', c(1:70) * 100, 'km'))
+    else
+      c(paste('~', c(1:70) * 60, 'mi')))
+  
+  values[1] <- paste('0', values[1])
+  return(values)
+}
+distanceGroupDf <- function(isMetric) {
+  dgdf <- data.frame(distanceGroups(isMetric), c(0:8))
+  colnames(dgdf) <- c('DistanceName', 'DistanceNumber')
+  return(dgdf)
+}
 
 getStates <- function() {
   data <- read.csv("data/statenames.csv", fileEncoding = "UTF-8-BOM")
@@ -21,14 +51,21 @@ states <- getStates()
 data <- read.csv("data/alldata.csv", fileEncoding = "UTF-8-BOM")
 data[is.na(data$dollarloss), "dollarloss"] <- 0
 
-state1Data <- data
-state2Data <- data
+chart1Data <- data
+chart2Data <- data
 
 allMag <- c("All")
 magnitudes <- c(levels(data$mag), allMag)
 magnitudesSelected <- c()
 ignoreNextMag <- FALSE
 
+counties <- read.csv("data/fipscodes.csv", fileEncoding = "UTF-8-BOM")
+
+getCounties <- function(st) {
+  cts <- counties[counties$st == st,]
+  choices <- setNames(as.list(c(0, cts$ctf)), c("All", as.character(cts$name)))
+  return(choices)
+}
 
 JScode <-
   "$(function() {
@@ -44,8 +81,11 @@ JScode <-
       $('#lossSlider').data('ionRangeSlider').update({'values':vals})
     }, 5)})"
 
-
-
+getLossValueFromSlider <- function(sliderValue) {
+  if(sliderValue == 0) return(0)
+  
+  return(10 ^ (sliderValue + 1))
+}
 
 #creates button group for filtering based on color/width
 createButtonGroup <- function(filter_id) {
@@ -116,6 +156,17 @@ getMagChart<- function() {
     layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus)
 }
 
+getChartData(data, x){
+  result <- data %>% group_by(get(x), mag) %>% summarise(
+    fat = sum(fat),
+    inj = sum(inj),
+    dl = sum(dollarloss, na.rm = TRUE),
+    count = n()
+  ) %>% group_by(x) %>% mutate(percent = count * 100 / sum(count))
+  
+  return(result)
+}
+
 ui <- fluidPage(tags$head(tags$script(HTML(JScode))), 
   tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
   div(
@@ -127,14 +178,23 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
         h1("You Spin Me Round"),
         actionButton("aboutButton", class = "action_button about_button", label = img(src = "images/about.png"))
       ), 
-
+      
       div(class = "spacer"),      
       div(
         class = "filter-group states",
         textOutput("state1Count", inline = TRUE),
         selectInput("state1Select", "State 1", states, "IL"),
+        textOutput("county1Count", inline = TRUE),
+        selectInput("county1Select", "County 1", c("All"), "All")
+      ),
+      
+      div(class = "spacer"),      
+      div(
+        class = "filter-group states",
         textOutput("state2Count", inline = TRUE),
-        selectInput("state2Select", "State 2", states, "TX")
+        selectInput("state2Select", "State 2", states, "TX"),
+        textOutput("county2Count", inline = TRUE),
+        selectInput("county2Select", "County 2", c("All"), "All")
       ),
       
       div(
@@ -142,11 +202,10 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
         selectInput("chartBySelect", "Chart By:",
           choices = list("Year", "Month", "Hour", "Distance from Chicago", "County")
         ),
-        h3("Year"), 
         div(
           id = "yearDiv",
           class = "filterContainer",
-          sliderInput("yearSlider", "#", min = 1950, max = 2017, value = c(2000, 2017), step = 1,
+          sliderInput("yearSlider", "Year", min = 1950, max = 2017, value = c(2000, 2017), step = 1,
             sep = "", width = "100%", animate = animationOptions(interval = 300, loop = FALSE))
         )
       ),
@@ -155,62 +214,55 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
       div(
         class = "filter-group",
         createButtonGroup('magnitudeFilter'),
-        h3("Magnitude"),
         div(
           id = "magnitudeDiv",
           class = "filterContainer",
-          checkboxGroupInput("magGroup", label = "F-Scale", choices = magnitudes, selected = "All")
+          checkboxGroupInput("magGroup", label = "Magnitude (F-scale)", choices = magnitudes, selected = "All")
         )
       ),
       
       div(
         class = "filter-group",
         createColorButtonGroup("widthFilter"),
-        h3("Width"),
         div(
           id = "widthDiv",
           class = "filterContainer",
-          sliderInput("widthSlider", "", min = 0, max = 5000, value = c(0, 5000))
+          sliderInput("widthSlider", "Width", min = 0, max = 5000, value = c(0, 5000))
         ),
         
         createColorButtonGroup("lengthFilter"),
-        h3("Length"),
         div(
           class = "filterContainer",
-          sliderInput("lengthSlider", "", min = 0, max = 250, value = c(0, 250))
+          sliderInput("lengthSlider", "Length", min = 0, max = 250, value = c(0, 250))
         )
       ),
       
       div(
         class = "filter-group",        
         createButtonGroup('distanceFilter'),
-        h3("Distance from Chicago"),
         div(
           class = "filterContainer",
-          sliderInput("distanceSlider", "", min = 0, max = 4500, value = c(0, 4500))
+          sliderInput("distanceSlider", "Distance from Chicago", min = 0, max = 4500, value = c(0, 4500))
         ),
 
         createButtonGroup('lossFilter'),
-        h3("Loss"),
         div(
           class = "filterContainer",
-          sliderInput("lossSlider", "USD", min = 0, max = 3000000000, value = c(0, 3000000000)))
+          sliderInput("lossSlider", "Loss (USD)", min = 0, max = 3000000000, value = c(0, 3000000000)))
       ),
       
       div(
         class = "filter-group",
         createButtonGroup('injuriesFilter'),
-        h3("Injuries"),
         div(
           class = "filterContainer",
-          sliderInput("injuriesSlider", "#", min = 0, max = 1750, value = c(0, 1750))
+          sliderInput("injuriesSlider", "Injuries", min = 0, max = 1750, value = c(0, 1750))
         ),
         
         createButtonGroup('fatalitiesFilter'),
-        h3("Fatalities"),
         div(
           class = "filterContainer",
-          sliderInput("fatalitiesSlider", "#", min = 0, max = 160, value = c(0, 160)))
+          sliderInput("fatalitiesSlider", "Fatalities", min = 0, max = 160, value = c(0, 160)))
       ),
       
       div(class = "spacer"),    
@@ -305,18 +357,28 @@ server <- function(input, output, session) {
     maxValue <- max(if(input$measurementRadio == "Imperial") data$chidist else data$chidistkm)
     updateSliderInput(session, "distanceSlider", label = label, max = maxValue, value = c(0, maxValue))
   })
+  
+  observeEvent(input$state1Select, {
+    choices <- getCounties(input$state1Select)
+    updateSelectInput(session, "county1Select", "County 1", choices, 0)
+  })
+  
+  observeEvent(input$state2Select, {
+    choices <- getCounties(input$state2Select)
+    updateSelectInput(session, "county2Select", "County 2", choices, 0)
+  })
 
   observeEvent(input$magnitudeFilterColor, {
     updateColorBy(input$magnitudeFilterColor, session, input, "magnitudeFilterColor")  
   })
   observeEvent(input$widthFilterColor, {
-      updateColorBy(input$widthFilterColor, session, input, "widthFilterColor") 
+    updateColorBy(input$widthFilterColor, session, input, "widthFilterColor") 
   })
   observeEvent(input$lengthFilterColor, {
-      updateColorBy(input$lengthFilterColor, session, input, "lengthFilterColor") 
+    updateColorBy(input$lengthFilterColor, session, input, "lengthFilterColor") 
   })
   observeEvent(input$distanceFilterColor, {
-      updateColorBy(input$distanceFilterColor, session, input, "distanceFilterColor")  
+    updateColorBy(input$distanceFilterColor, session, input, "distanceFilterColor")  
   })
   observeEvent(input$lossFilterColor, {
     updateColorBy(input$lossFilterColor, session, input, "lossFilterColor")  
@@ -405,13 +467,31 @@ server <- function(input, output, session) {
     plotData <- subset(plotData, inj >= input$injuriesSlider[1])
     plotData <- subset(plotData, inj <= input$injuriesSlider[2])
     
-    plotData <- subset(plotData, fat >= input$lossSlider[1])
-    plotData <- subset(plotData, fat <= input$lossSlider[2])
+    plotData <- subset(plotData, fat >= getLossValueFromSlider(input$lossSlider[1]))
+    plotData <- subset(plotData, fat <= getLossValueFromSlider(input$lossSlider[2]))
     
-    state1Data <<- subset(plotData, st == input$state1Select)
+    state1Data <- subset(plotData, st == input$state1Select)
     output$state1Count <- renderText(paste(nrow(state1Data), "records"))
-    state2Data <<- subset(plotData, st == input$state2Select)
+    county1Data <<- if (input$county1Select == 0) state1Data else
+      subset(state1Data, grepl(paste0(":", input$county1Select, ":"), fips, fixed = TRUE))
+    output$county1Count <- renderText(paste(nrow(county1Data), "records"))
+    
+    chart1Data <<- getChartData(county1Data, switch(input$chartBySelect,
+        "Year" = "yr",
+        "Month" = "mo", 
+        "Hour" = "hr",
+        "Distance from Chicago" = ,
+        "County"
+    ))
+    
+    state2Data <- subset(plotData, st == input$state2Select)
     output$state2Count <- renderText(paste(nrow(state2Data), "records"))
+    chart2Data <<- if (input$county2Select == 0) state2Data else
+      subset(state2Data, grepl(paste0(":", input$county2Select, ":"), fips, fixed = TRUE))
+    output$county2Count <- renderText(paste(nrow(chart2Data), "records"))
+    
+    print(input$lossSlider)
+    print(getLossValueFromSlider(input$lossSlider))
   })
   
   output$sampleMap1 <-  renderLeaflet({
