@@ -8,8 +8,9 @@ library(shiny)
 library(shinyBS)
 library(DT)
 
-colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor', 'fatalitiesFilterColor')
-widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth','lossFilterWidth','injuriesFilterWidth','fatalitiesFilterWidth')
+colorByArray <- c('magnitudeFilterColor', 'widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor', 'fatalitiesFilterColor')
+widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth', 'lossFilterWidth', 'injuriesFilterWidth', 'fatalitiesFilterWidth')
+
 months <- c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
 monthsDf <- data.frame(months, c(1:12))
 colnames(monthsDf) <- c('MonthName', 'MonthNumber')
@@ -18,119 +19,101 @@ times <- c(paste(c(0:4), 'to', c(1:5), 'hr'), '5 hr or more')
 timesDf <- data.frame(times, c(0:5))
 colnames(timesDf) <- c('TimeName', 'TimeNumber')
 
-
 county_heatmap <- read.csv("data/countydata.csv", fileEncoding = "UTF-8-BOM")
+uscounties <- rgdal::readOGR("data/uscounties.geojson")
+uscounties <- merge(uscounties, county_heatmap, by.x="GEO_ID", by.y = "geoId")
+uscounties[is.na(uscounties$inj), "inj"] <- 0
+counties_popup <- paste0("<strong>County: </strong>", uscounties$NAME, 
+                         "<strong>Injuries: </strong>", uscounties$inj)
 
-
-uscounties <-  rgdal::readOGR("uscounties.geojson")
-
-usstates <-  rgdal::readOGR("usstates.geojson")
-
-state_popup <- paste0("<strong>Name: </strong>", usstates$NAME)
-
-uscounties<- merge(uscounties , county_heatmap , by.x="GEO_ID", by.y = "geoId")
-
-uscounties[is.na(uscounties$inj),"inj"]<-0
-
-counties_popup <- paste0("<strong>Name:</strong>", 
-                      uscounties$NAME, "<strong>Injuries:</strong>",uscounties$inj)
-
-
+usstates <- rgdal::readOGR("data/usstates.geojson")
+state_popup <- paste0("<strong>State: </strong>", usstates$NAME)
 
 state <- TRUE
 heatmap <- FALSE
-heatmapby<- "inj"
+heatmapby <- "inj"
 
 #helper function to get ctf and stf from map input
-code_get <- function(id ,  state = FALSE)
+code_get <- function(id, state = FALSE)
 {
   string <- sub(".*US", "", id)
-  code <- list(stf= -1 , ctf = -1)
+  code <- list(stf= -1, ctf = -1)
   
-  code$stf <- as.numeric(substr(string,0,2))
+  code$stf <- as.numeric(substr(string, 0, 2))
   
   if(!state)
   {
-    code$ctf<-as.numeric(substr(string,3,5))
+    code$ctf<-as.numeric(substr(string, 3, 5))
   }
   return (code)
-  
 }
 
-
-
-draw_tracks <- function(map , df, heatmap , group )
+draw_tracks <- function(map, df, heatmap, group )
 {
-
- if(!heatmap & df$stf!=-1){ 
-
-  #lines <-  rgdal::readOGR(paste0("data/GeoJson/",df$stf,".geojson"))
-
-
-  map <- map %>% addPolygons( data = lines )
-
+  if(!heatmap & df$stf!=-1) { 
+    #lines <- rgdal::readOGR(paste0("data/GeoJson/", df$stf, ".geojson"))
+    map <- map %>% addPolygons( data = lines )
   }
- 
   return (map)
 }
 
+# function to create foundational map
 
+foundational.map <- function(state, heatmap, heatmapby) {
+  y <- leaflet() %>%
+    addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
+    addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
+    addProviderTiles(providers$Esri.WorldImagery, group = 'Satellite') %>%
+    addProviderTiles(providers$Esri.WorldGrayCanvas, group = 'Minimal') %>%
+    addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
+    addLayersControl(
+      baseGroups = c("Dark", "Light", "Satellite", "Minimal", "Colorblind Safe"), 
+      options = layersControlOptions(collapsed = TRUE)
+    ) %>%
+    setView(lat = 41.881832, lng = -87.623177, zoom = 4)
 
-
- # function to create foundational map
-foundational.map <- function(state ,heatmap , heatmapby){
-    y <- leaflet() %>%
-      addProviderTiles(providers$CartoDB.DarkMatter, group = 'Dark') %>%
-      addProviderTiles(providers$CartoDB.Positron, group = 'Light') %>%
-      addProviderTiles(providers$Esri.WorldImagery, group = 'Satellite') %>%
-      addProviderTiles(providers$Esri.WorldGrayCanvas, group = 'Minimal') %>%
-      addProviderTiles(providers$Stamen.TonerLite, group = 'Colorblind Safe') %>%
-      addLayersControl(
-        baseGroups = c("Dark","Light", "Satellite", "Minimal", "Colorblind Safe"),
-        options = layersControlOptions(collapsed = TRUE)
-      ) %>%
-      setView(lat = 41.881832,
-              lng = -87.623177,
-              zoom = 4)
-    if(state & !heatmap){
-     y <- y%>%
-      addPolygons( data = usstates
-                   , fillOpacity = 0
-                   , opacity = 0.2
-                   , color = "#000000"
-                   , weight = 2
-                   , layerId = usstates$GEO_ID
-                   , group = "click.list" , popup = state_popup)}
-    else if( !state & !heatmap){
-
-     y <- y%>%
-      addPolygons( data = uscounties
-                   , fillOpacity = 0
-                   , opacity = 0.2
-                   , color = "#000000"
-                   , weight = 2
-                   , layerId = uscounties$GEO_ID
-                   , group = "click.list" , popup = counties_popup)
-
-    }
-    else if(heatmap){
-
-      y <- y%>%
-      addPolygons( data = uscounties
-                   , fillOpacity = rescale(uscounties[[heatmapby]] , c(0,1)) 
-                   , opacity = rescale(uscounties[[heatmapby]] , c(0,1)) 
-                   , color = "#FF0000"
-                   , weight = 2
-                   , layerId = uscounties$GEO_ID
-                   , group = "heatmap" , popup = counties_popup)
-
-
-    } 
-
-      y 
+  if (state & !heatmap) {
+    y <- y %>%
+      addPolygons(
+        data = usstates, 
+        fillOpacity = 0, 
+        opacity = 0.2, 
+        color = "#000000", 
+        weight = 2, 
+        layerId = usstates$GEO_ID, 
+        group = "click.list", 
+        popup = state_popup
+      )
   }
-
-
+  else if (!state & !heatmap) {
+    y <- y %>%
+      addPolygons(
+        data = uscounties, 
+        fillOpacity = 0, 
+        opacity = 0.2, 
+        color = "#000000", 
+        weight = 2, 
+        layerId = uscounties$GEO_ID, 
+        group = "click.list", 
+        popup = counties_popup
+      )
+  }
+  else if (heatmap) {
+    y <- y %>%
+      addPolygons(
+        data = uscounties, 
+        fillOpacity = rescale(uscounties[[heatmapby]], c(0, 1)), 
+        opacity = rescale(uscounties[[heatmapby]], c(0, 1)), 
+        color = "#FF0000", 
+        weight = 2, 
+        layerId = uscounties$GEO_ID, 
+        group = "heatmap", 
+        popup = counties_popup
+      )
+  }
+  
+  return(y)
+}
 
 hours <- function(is24Hour) {
   return(if (is24Hour) paste(c(0:23), 'hr') else c('Midnight', paste(c(1:11), 'am'), 'Noon', paste(c(1:11), 'pm')))
@@ -177,7 +160,7 @@ ignoreNextMag <- FALSE
 counties <- read.csv("data/fipscodes.csv", fileEncoding = "UTF-8-BOM")
 
 getCounties <- function(st) {
-  cts <- counties[counties$st == st,]
+  cts <- counties[counties$st == st, ]
   choices <- setNames(as.list(c(0, cts$ctf)), c("All", as.character(cts$name)))
   return(choices)
 }
@@ -207,48 +190,48 @@ createButtonGroup <- function(filter_id) {
   if(filter_id == 'magnitudeFilter') { value = TRUE }
   else { value = FALSE }
   div( 
-    class = "buttonGroup",
+    class = "buttonGroup", 
     prettyToggle(
-      inputId = paste(filter_id , "Width", sep=""),
-      label_on = "", label_off="",
-      # animation = 'pulse',
-      icon_on = icon("bars",lib = "font-awesome"),
-      icon_off = icon("bars", lib = "font-awesome"),
-      status_on = "primary", status_off = "default",
+      inputId = paste(filter_id, "Width", sep=""), 
+      label_on = "", label_off="", 
+      # animation = 'pulse', 
+      icon_on = icon("bars", lib = "font-awesome"), 
+      icon_off = icon("bars", lib = "font-awesome"), 
+      status_on = "primary", status_off = "default", 
       shape = "square", outline = TRUE
-    ),
-    bsTooltip(paste(filter_id , "Width", sep=""),title = "Apply_Width", placement = "bottom", trigger = "hover", options = NULL),
+    ), 
+    bsTooltip(paste(filter_id, "Width", sep=""), title = "Apply_Width", placement = "bottom", trigger = "hover", options = NULL), 
     prettyToggle(
-      inputId = paste(filter_id , "Color", sep=""),
-      label_on = "", label_off="",
-      icon_on = icon("tint"),
-      icon_off = icon("tint"),
-      status_on = "primary", status_off = "default",
+      inputId = paste(filter_id, "Color", sep=""), 
+      label_on = "", label_off="", 
+      icon_on = icon("tint"), 
+      icon_off = icon("tint"), 
+      status_on = "primary", status_off = "default", 
       shape = "round", outline = TRUE, value = value
-    ),
-    bsTooltip(paste(filter_id , "Color", sep=""),title = "Apply_Color", placement = "bottom", trigger = "hover", options = NULL)
+    ), 
+    bsTooltip(paste(filter_id, "Color", sep=""), title = "Apply_Color", placement = "bottom", trigger = "hover", options = NULL)
   )
 }
 createColorButtonGroup <- function(filter_id) {
-  div(class = "buttonGroup",
+  div(class = "buttonGroup", 
       prettyToggle(
-        inputId = paste(filter_id , "Color", sep=""), 
-        label_on = "", label_off="",
-        icon_on = icon("tint"),
-        icon_off = icon("tint"),
-        status_on = "primary", status_off = "default",
+        inputId = paste(filter_id, "Color", sep=""), 
+        label_on = "", label_off="", 
+        icon_on = icon("tint"), 
+        icon_off = icon("tint"), 
+        status_on = "primary", status_off = "default", 
         shape = "round", outline = TRUE
-      ),
-      bsTooltip(paste(filter_id , "Color", sep=""),title = "Apply_Color", placement = "bottom", trigger = "hover", options = NULL)
+      ), 
+      bsTooltip(paste(filter_id, "Color", sep=""), title = "Apply_Color", placement = "bottom", trigger = "hover", options = NULL)
       )
 }
 
 getMagnitudeChart<- function(df, chartBy) {
-  x<-switch (chartBy,
-             'Year' = 'yr',
-             'month' = 'mo',
-             'hour' = 'hr',
-             'dist' = 'chidist',
+  x<-switch (chartBy, 
+             'Year' = 'yr', 
+             'month' = 'mo', 
+             'hour' = 'hr', 
+             'dist' = 'chidist', 
              'county' = 'county'
   )
   
@@ -257,53 +240,63 @@ getMagnitudeChart<- function(df, chartBy) {
   updatemenus <-list(
     list(
       buttons = list(
-        list(method = "restyle",
-             args = list("y", list(df$count)),  # put it in a list
-             label = "Show Count"),
-        list(method = "restyle",
-             args = list("y", list(df$percent)),  # put it in a list
-             label = "Show Percent"),
-        list(method = "restyle",
-             args = list("y", list(df$fat)),  # put it in a list
-             label = "Show Fatalities"),
-        list(method = "restyle",
-             args = list("y", list(df$inj)),  # put it in a list
-             label = "Show Injuries"),
-        list(method = "restyle",
-             args = list("y", list(df$dl)),  # put it in a list
+        list(method = "restyle", 
+             args = list("y", list(df$count)), # put it in a list
+             label = "Show Count"), 
+        list(method = "restyle", 
+             args = list("y", list(df$percent)), # put it in a list
+             label = "Show Percent"), 
+        list(method = "restyle", 
+             args = list("y", list(df$fat)), # put it in a list
+             label = "Show Fatalities"), 
+        list(method = "restyle", 
+             args = list("y", list(df$inj)), # put it in a list
+             label = "Show Injuries"), 
+        list(method = "restyle", 
+             args = list("y", list(df$dl)), # put it in a list
              label = "Show Loss")
         ))
   )
   
-  return(plot_ly(df, type = 'bar', x = ~get(x), y = ~count, marker = list(color = ~as.numeric(df$mag), showscale = TRUE, colorbar=list(tickmode='array',tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))))) %>%
+  return(plot_ly(df, type = 'bar', x = ~get(x), y = ~count, marker = list(color = ~as.numeric(df$mag), showscale = TRUE, colorbar=list(tickmode='array', tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))))) %>%
            layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus))
 }
 
-getParCoordChart<-function(df,chartBy) {
-  x<-switch (chartBy,
-             'Year' = 'yr',
-             'month' = 'mo',
-             'hour' = 'hr',
-             'dist' = 'chidist',
+getParCoordChart<-function(df, chartBy) {
+  x<-switch (chartBy, 
+             'Year' = 'yr', 
+             'month' = 'mo', 
+             'hour' = 'hr', 
+             'dist' = 'chidist', 
              'county' = 'county'
   )
   
-  return(df %>% plot_ly(type='parcoords', line=list(color=~as.numeric(mag), showscale=T, colorbar=list(tickmode='array',tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag)))),
-                           dimensions = list(
-                             list(label=chartBy, values=~get(x), range = c(~min(get(x)),~max(get(x)))),
-                             list(label='Magnitude', values=~as.numeric(mag),tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))),
-                             list(label='Injuries', values=~inj, range = c(~min(inj),~max(inj))),
-                             list(label='Fatalities', values=~fat, range = c(~min(fat),~max(fat))),
-                             list(label='Loss ($)', values=~dl, range = c(~min(dl),~max(dl)))
-                           ))
-         )
+  return(
+    df %>% plot_ly(
+      type = 'parcoords', 
+      line = list(
+        color = ~ as.numeric(mag), 
+        showscale = T, 
+        colorbar = list(
+          tickmode = 'array', 
+          tickvals = as.numeric(sort(unique(df$mag))), 
+          ticktext = sort(unique(df$mag))
+        )
+      ), 
+      dimensions = list(
+          list(label=chartBy, values=~get(x), range = c(~min(get(x)), ~max(get(x)))), 
+          list(label='Magnitude', values=~as.numeric(mag), tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))), 
+          list(label='Injuries', values=~inj, range = c(~min(inj), ~max(inj))), 
+          list(label='Fatalities', values=~fat, range = c(~min(fat), ~max(fat))), 
+          list(label='Loss ($)', values=~dl, range = c(~min(dl), ~max(dl)))
+  )))
 }
 
 getChartData <- function(data, x){
   result <- data %>% group_by_at(c(x, 'mag')) %>% summarise(
-    fat = sum(fat),
-    inj = sum(inj),
-    dl = sum(dollarloss, na.rm = TRUE),
+    fat = sum(fat), 
+    inj = sum(inj), 
+    dl = sum(dollarloss, na.rm = TRUE), 
     count = n()
   ) %>% group_by_at(x) %>% mutate(percent = count * 100 / sum(count))
   
@@ -316,151 +309,151 @@ getTable<-function(df, chartBy) {
 }
 
 ui <- fluidPage(tags$head(tags$script(HTML(JScode))), 
-  tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
+  tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"), 
   div(
-    id = "container",
+    id = "container", 
     div(
-      id = "controls",
+      id = "controls", 
       div(
-        class = "filter-group",
-        h1("You Spin Me Round"),
+        class = "filter-group", 
+        h1("You Spin Me Round"), 
         actionButton("aboutButton", class = "action_button about_button", label = img(src = "images/about.png"))
       ), 
       
-      div(class = "spacer"),      
+      div(class = "spacer"), 
       div(
-        class = "filter-group states",
-        textOutput("state1Count", inline = TRUE),
-        selectInput("state1Select", "State 1", states, "IL"),
-        textOutput("county1Count", inline = TRUE),
+        class = "filter-group states", 
+        textOutput("state1Count", inline = TRUE), 
+        selectInput("state1Select", "State 1", states, "IL"), 
+        textOutput("county1Count", inline = TRUE), 
         selectInput("county1Select", "County 1", c("All"), "All")
-      ),
+      ), 
       
-      div(class = "spacer"),      
+      div(class = "spacer"), 
       div(
-        class = "filter-group states",
-        textOutput("state2Count", inline = TRUE),
-        selectInput("state2Select", "State 2", states, "TX"),
-        textOutput("county2Count", inline = TRUE),
+        class = "filter-group states", 
+        textOutput("state2Count", inline = TRUE), 
+        selectInput("state2Select", "State 2", states, "TX"), 
+        textOutput("county2Count", inline = TRUE), 
         selectInput("county2Select", "County 2", c("All"), "All")
-      ),
+      ), 
       
       div(
-        class = "filter-group",
-        selectInput("chartBySelect", "Chart By:",
+        class = "filter-group", 
+        selectInput("chartBySelect", "Chart By:", 
           choices = list("Year", "Month", "Hour", "Distance from Chicago", "County")
-        ),
+        ), 
         div(
-          id = "yearDiv",
-          class = "filterContainer",
-          sliderInput("yearSlider", "Year", min = 1950, max = 2017, value = c(2000, 2017), step = 1,
+          id = "yearDiv", 
+          class = "filterContainer", 
+          sliderInput("yearSlider", "Year", min = 1950, max = 2017, value = c(2000, 2017), step = 1, 
             sep = "", width = "100%", animate = animationOptions(interval = 300, loop = FALSE))
         )
-      ),
+      ), 
       
-      div(class = "spacer"),    
+      div(class = "spacer"), 
       div(
-        class = "filter-group",
-        createButtonGroup('magnitudeFilter'),
+        class = "filter-group", 
+        createButtonGroup('magnitudeFilter'), 
         div(
-          id = "magnitudeDiv",
-          class = "filterContainer",
+          id = "magnitudeDiv", 
+          class = "filterContainer", 
           checkboxGroupInput("magGroup", label = "Magnitude (F-scale)", choices = magnitudes, selected = "All")
         )
-      ),
+      ), 
       
       div(
-        class = "filter-group",
-        createColorButtonGroup("widthFilter"),
+        class = "filter-group", 
+        createColorButtonGroup("widthFilter"), 
         div(
-          id = "widthDiv",
-          class = "filterContainer",
+          id = "widthDiv", 
+          class = "filterContainer", 
           sliderInput("widthSlider", "Width", min = 0, max = 5000, value = c(0, 5000))
-        ),
+        ), 
         
-        createColorButtonGroup("lengthFilter"),
+        createColorButtonGroup("lengthFilter"), 
         div(
-          class = "filterContainer",
+          class = "filterContainer", 
           sliderInput("lengthSlider", "Length", min = 0, max = 250, value = c(0, 250))
         )
-      ),
+      ), 
       
       div(
-        class = "filter-group",        
-        createButtonGroup('distanceFilter'),
+        class = "filter-group", 
+        createButtonGroup('distanceFilter'), 
         div(
-          class = "filterContainer",
+          class = "filterContainer", 
           sliderInput("distanceSlider", "Distance from Chicago", min = 0, max = 4500, value = c(0, 4500))
-        ),
+        ), 
 
-        createButtonGroup('lossFilter'),
+        createButtonGroup('lossFilter'), 
         div(
-          class = "filterContainer",
+          class = "filterContainer", 
           sliderInput("lossSlider", "Loss (USD)", min = 0, max = 3000000000, value = c(0, 3000000000)))
-      ),
+      ), 
       
       div(
-        class = "filter-group",
-        createButtonGroup('injuriesFilter'),
+        class = "filter-group", 
+        createButtonGroup('injuriesFilter'), 
         div(
-          class = "filterContainer",
+          class = "filterContainer", 
           sliderInput("injuriesSlider", "Injuries", min = 0, max = 1750, value = c(0, 1750))
-        ),
+        ), 
         
-        createButtonGroup('fatalitiesFilter'),
+        createButtonGroup('fatalitiesFilter'), 
         div(
-          class = "filterContainer",
+          class = "filterContainer", 
           sliderInput("fatalitiesSlider", "Fatalities", min = 0, max = 160, value = c(0, 160)))
-      ),
+      ), 
       
-      div(class = "spacer"),    
+      div(class = "spacer"), 
       div(
-        class = "filter-group",
-        radioButtons("hourRadio", "Time Format", c("AM/PM", "24 hr"), inline = TRUE),
+        class = "filter-group", 
+        radioButtons("hourRadio", "Time Format", c("AM/PM", "24 hr"), inline = TRUE), 
         radioButtons("measurementRadio", "Measurements", c("Imperial", "Metric"), inline = TRUE)
       )
-    ),
-    div(id = "mapOne",
+    ), 
+    div(id = "mapOne", 
         leafletOutput(
           "sampleMap1", width = "100%", height = "100%"
-        )),
-    div(id = "mapTwo",
+        )), 
+    div(id = "mapTwo", 
         leafletOutput(
           "sampleMap2", width = "100%", height = "100%"
-        )),
-    div(id = "plotOne",
-        height = "100%",
+        )), 
+    div(id = "plotOne", 
+        height = "100%", 
         tabsetPanel(
-          type = 'tabs',
-          id='chartbox1',
+          type = 'tabs', 
+          id='chartbox1', 
           tabPanel(
-            'Injuries, Fatalities and Loss',
+            'Injuries, Fatalities and Loss', 
             plotlyOutput('parcoordchart1')
-          ),
+          ), 
           tabPanel(
-            'Number of Tornadoes',
+            'Number of Tornadoes', 
             plotlyOutput('countpercent1')
-          ),
+          ), 
           tabPanel(
-            'Table',
+            'Table', 
             dataTableOutput('table1')
           )
         )
-    ),
-    div(id = "plotTwo",
+    ), 
+    div(id = "plotTwo", 
         tabsetPanel(
-          type = 'tabs',
-          id='chartbox2',
+          type = 'tabs', 
+          id='chartbox2', 
           tabPanel(
-            'Injuries, Fatalities and Loss',
+            'Injuries, Fatalities and Loss', 
             plotlyOutput('parcoordchart2')
-          ),
+          ), 
           tabPanel(
-            'Number of Tornadoes',
+            'Number of Tornadoes', 
             plotlyOutput('countpercent2')
-          ),
+          ), 
           tabPanel(
-            'Table',
+            'Table', 
             dataTableOutput('table2')
           )
         )
@@ -511,16 +504,16 @@ server <- function(input, output, session) {
   observeEvent(input$aboutButton, {
     showModal(
       modalDialog(
-        title = "You Spin Me Round",
-        p("You Spin Me Round is a geospatial visualization of tornadoes data from 1965-2016."),
-        p("The data for this project is from NOAA's National Weather Service:",
-        a(href = "http://www.spc.noaa.gov/wcm/index.html#data", target = "_blank", "Storm Prediction Center")),
+        title = "You Spin Me Round", 
+        p("You Spin Me Round is a geospatial visualization of tornadoes data from 1965-2016."), 
+        p("The data for this project is from NOAA's National Weather Service:", 
+        a(href = "http://www.spc.noaa.gov/wcm/index.html#data", target = "_blank", "Storm Prediction Center")), 
         p("This visualization allows the users to view the relative strength of the tornadoes and damage caused by them across
         different states in USA. Additionally, users can filter data by the tornado width, length, injuries, fatalities and loss. Moreover, users
-        can also choose the time frame(year, month, hour) for which they want to see the tornado data."),
-        hr(),
-        h5("Team: R You Shiny"),
-        p("Amey Barapatre | Sai Phaltankar | Jaspreet Kaur Sohal | Vivek R. Shivaprabhu"),
+        can also choose the time frame(year, month, hour) for which they want to see the tornado data."), 
+        hr(), 
+        h5("Team: R You Shiny"), 
+        p("Amey Barapatre | Sai Phaltankar | Jaspreet Kaur Sohal | Vivek R. Shivaprabhu"), 
         easyClose = TRUE
       )
     )
@@ -529,14 +522,14 @@ server <- function(input, output, session) {
   observeEvent(input$measurementRadio, {
     label <- if(input$measurementRadio == "Imperial") "yards" else "meters"
     maxValue <- max(if(input$measurementRadio == "Imperial") data$wid else data$widm)
-    updateSliderInput(session, "widthSlider", label = label, max = maxValue, value = c(0, maxValue))
+    updateSliderInput(session, "widthSlider", label = paste0("Width (", label, ")"), max = maxValue, value = c(0, maxValue))
     
     label <- if(input$measurementRadio == "Imperial") "miles" else "kilometers"
     maxValue <- max(if(input$measurementRadio == "Imperial") data$len else data$lenkm)
-    updateSliderInput(session, "lengthSlider", label = label, max = maxValue, value = c(0, maxValue))
+    updateSliderInput(session, "lengthSlider", label = paste0("Length (", label, ")"), max = maxValue, value = c(0, maxValue))
     
     maxValue <- max(if(input$measurementRadio == "Imperial") data$chidist else data$chidistkm)
-    updateSliderInput(session, "distanceSlider", label = label, max = maxValue, value = c(0, maxValue))
+    updateSliderInput(session, "distanceSlider", label = paste0("Dist. to Chicao (", label, ")"), max = maxValue, value = c(0, maxValue))
   })
   
   observeEvent(input$state1Select, {
@@ -550,7 +543,7 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$magnitudeFilterColor, {
-    updateColorBy(input$magnitudeFilterColor, session, input, "magnitudeFilterColor")  
+    updateColorBy(input$magnitudeFilterColor, session, input, "magnitudeFilterColor") 
   })
   observeEvent(input$widthFilterColor, {
     updateColorBy(input$widthFilterColor, session, input, "widthFilterColor") 
@@ -559,32 +552,32 @@ server <- function(input, output, session) {
     updateColorBy(input$lengthFilterColor, session, input, "lengthFilterColor") 
   })
   observeEvent(input$distanceFilterColor, {
-    updateColorBy(input$distanceFilterColor, session, input, "distanceFilterColor")  
+    updateColorBy(input$distanceFilterColor, session, input, "distanceFilterColor") 
   })
   observeEvent(input$lossFilterColor, {
-    updateColorBy(input$lossFilterColor, session, input, "lossFilterColor")  
+    updateColorBy(input$lossFilterColor, session, input, "lossFilterColor") 
   })
   observeEvent(input$injuriesFilterColor, {
-    updateColorBy(input$injuriesFilterColor, session, input, "injuriesFilterColor")  
+    updateColorBy(input$injuriesFilterColor, session, input, "injuriesFilterColor") 
   })
   observeEvent(input$fatalitiesFilterColor, {
-    updateColorBy(input$fatalitiesFilterColor, session, input, "fatalitiesFilterColor")  
+    updateColorBy(input$fatalitiesFilterColor, session, input, "fatalitiesFilterColor") 
   })
   
   observeEvent(input$magnitudeFilterWidth, {
-    updateWidthBy(input$magnitudeFilterWidth, session, input, "magnitudeFilterWidth")  
+    updateWidthBy(input$magnitudeFilterWidth, session, input, "magnitudeFilterWidth") 
   })
   observeEvent(input$distanceFilterWidth, {
-    updateWidthBy(input$distanceFilterWidth, session, input, "distanceFilterWidth")  
+    updateWidthBy(input$distanceFilterWidth, session, input, "distanceFilterWidth") 
   })
   observeEvent(input$lossFilterWidth, {
-    updateWidthBy(input$lossFilterWidth, session, input, "lossFilterWidth")  
+    updateWidthBy(input$lossFilterWidth, session, input, "lossFilterWidth") 
   })
   observeEvent(input$injuriesFilterWidth, {
-    updateWidthBy(input$injuriesFilterWidth, session, input, "injuriesFilterWidth")  
+    updateWidthBy(input$injuriesFilterWidth, session, input, "injuriesFilterWidth") 
   })
   observeEvent(input$fatalitiesFilterWidth, {
-    updateWidthBy(input$fatalitiesFilterWidth, session, input, "fatalitiesFilterWidth")  
+    updateWidthBy(input$fatalitiesFilterWidth, session, input, "fatalitiesFilterWidth") 
   })
   
   observe({ # This should not be observeEvent
@@ -644,8 +637,6 @@ server <- function(input, output, session) {
     
     plotData <- subset(plotData, fat >= input$fatalitiesSlider[1])
     plotData <- subset(plotData, fat <= input$fatalitiesSlider[2])
-    print(input$lossSlider[1])
-    print(input$lossSlider[2])
     
     plotData <- subset(plotData, inj >= input$injuriesSlider[1])
     plotData <- subset(plotData, inj <= input$injuriesSlider[2])
@@ -659,12 +650,13 @@ server <- function(input, output, session) {
       subset(state1Data, grepl(paste0(":", input$county1Select, ":"), fips, fixed = TRUE))
     output$county1Count <- renderText(paste(nrow(county1Data), "records"))
     
-    chart1Data <- getChartData(county1Data, switch(input$chartBySelect,
-        "Year" = "yr",
-        "Month" = "mo", 
-        "Hour" = "hr"#,
-        #"Distance from Chicago" = ,
-        #"County"
+    chart1Data <- getChartData(county1Data, switch(
+      input$chartBySelect, 
+      "Year" = "yr", 
+      "Month" = "mo", 
+      "Hour" = "hr"#, 
+      #"Distance from Chicago" =, 
+      #"County"
     ))
     
     state2Data <- subset(plotData, st == input$state2Select)
@@ -673,14 +665,14 @@ server <- function(input, output, session) {
       subset(state2Data, grepl(paste0(":", input$county2Select, ":"), fips, fixed = TRUE))
     output$county2Count <- renderText(paste(nrow(county2Data), "records"))
     
-    chart2Data <- getChartData(county2Data, switch(input$chartBySelect,
-                                                   "Year" = "yr",
-                                                   "Month" = "mo", 
-                                                   "Hour" = "hr"#,
-                                                   #"Distance from Chicago" = ,
-                                                   #"County"
+    chart2Data <- getChartData(county2Data, switch(
+      input$chartBySelect, 
+      "Year" = "yr", 
+      "Month" = "mo", 
+      "Hour" = "hr"#, 
+      #"Distance from Chicago" =, 
+      #"County"
     ))
-    
 
     output$parcoordchart1<-renderPlotly({
       getParCoordChart(chart1Data, input$chartBySelect)
@@ -704,28 +696,28 @@ server <- function(input, output, session) {
 
   })
   
-  myMap_reval <- reactiveVal(foundational.map(state , heatmap , heatmapby))
-  geoid_map1 <- reactiveValues(stf=-1 , ctf= -1)
-geoid_map2 <- reactiveValues(stf=-1 , ctf= -1)
+  myMap_reval <- reactiveVal(foundational.map(state, heatmap, heatmapby))
+  geoid_map1 <- reactiveValues(stf=-1, ctf= -1)
+geoid_map2 <- reactiveValues(stf=-1, ctf= -1)
 group<-list(id=vector())
 
 prev1<-reactiveValues(id = vector())
 prev2<-reactiveValues( id = vector())
 
 
-  output$sampleMap1 <-  renderLeaflet({
+  output$sampleMap1 <- renderLeaflet({
    
-   map<-  myMap_reval()
+   map<- myMap_reval()
   
   })
 
-  output$sampleMap2 <-  renderLeaflet({
+  output$sampleMap2 <- renderLeaflet({
   
-   map<-  myMap_reval()
+   map<- myMap_reval()
   })
 
 
-  observeEvent( input$sampleMap1_shape_click, ignoreNULL = T,ignoreInit = T, {
+  observeEvent( input$sampleMap1_shape_click, ignoreNULL = T, ignoreInit = T, {
     
     click1 <- input$sampleMap1_shape_click
     
@@ -734,33 +726,33 @@ prev2<-reactiveValues( id = vector())
   if(geoid_map1$stf==-1)
     { 
     
-      geoid_map1$stf <- code_get(click1$id,state)$stf
-      geoid_map1$ctf <- code_get(click1$id,state)$ctf 
+      geoid_map1$stf <- code_get(click1$id, state)$stf
+      geoid_map1$ctf <- code_get(click1$id, state)$ctf 
 
-    lines <-  rgdal::readOGR(paste0("data/GeoJson/",geoid_map1$stf,".geojson"))
+    lines <- rgdal::readOGR(paste0("data/GeoJson/", geoid_map1$stf, ".geojson"))
 
       
 
-      leafletProxy("sampleMap1", session)  %>% addPolylines(data = lines  , layerId = lines$tornadoId)
+      leafletProxy("sampleMap1", session) %>% addPolylines(data = lines, layerId = lines$tornadoId)
      }
     else
-    {   
+    { 
        print("here")
-       geoid_map1$stf <- code_get(click1$id,state)$stf
-       geoid_map1$ctf <- code_get(click1$id,state)$ctf 
+       geoid_map1$stf <- code_get(click1$id, state)$stf
+       geoid_map1$ctf <- code_get(click1$id, state)$ctf 
 
     
-      lines <-  rgdal::readOGR(paste0("data/GeoJson/",geoid_map1$stf,".geojson"))
+      lines <- rgdal::readOGR(paste0("data/GeoJson/", geoid_map1$stf, ".geojson"))
 
  
-        leafletProxy("sampleMap1", session)  %>% removeShape(layerId = prev1$id) %>% addPolylines(data = lines , layerId = lines$tornadoId)
+        leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id) %>% addPolylines(data = lines, layerId = lines$tornadoId)
     }
     prev1$id <- lines$tornadoId
     
   })
 
 
-  observeEvent( input$sampleMap2_shape_click, ignoreNULL = T,ignoreInit = T, {
+  observeEvent( input$sampleMap2_shape_click, ignoreNULL = T, ignoreInit = T, {
     
     click2 <- input$sampleMap2_shape_click
     
@@ -768,27 +760,27 @@ prev2<-reactiveValues( id = vector())
     
 
     if(geoid_map2$stf==-1)
-    {   
-      geoid_map2$stf <- code_get(click2$id,state)$stf
-    geoid_map2$ctf <- code_get(click2$id,state)$ctf
+    { 
+      geoid_map2$stf <- code_get(click2$id, state)$stf
+    geoid_map2$ctf <- code_get(click2$id, state)$ctf
     
-    lines <-  rgdal::readOGR(paste0("data/GeoJson/",geoid_map2$stf,".geojson"))
+    lines <- rgdal::readOGR(paste0("data/GeoJson/", geoid_map2$stf, ".geojson"))
 
-      leafletProxy("sampleMap2", session)  %>% addPolylines(data = lines  , layerId = lines$tornadoId)
+      leafletProxy("sampleMap2", session) %>% addPolylines(data = lines, layerId = lines$tornadoId)
      }
     else
-    {   
+    { 
       print("here")
-      geoid_map2$stf <- code_get(click2$id,state)$stf
-    geoid_map2$ctf <- code_get(click2$id,state)$ctf
+      geoid_map2$stf <- code_get(click2$id, state)$stf
+    geoid_map2$ctf <- code_get(click2$id, state)$ctf
     
-    lines <-  rgdal::readOGR(paste0("data/GeoJson/",geoid_map2$stf,".geojson"))
+    lines <- rgdal::readOGR(paste0("data/GeoJson/", geoid_map2$stf, ".geojson"))
 
 
-        leafletProxy("sampleMap2", session)  %>% removeShape(layerId = prev2$id) %>% addPolylines(data = lines , layerId = lines$tornadoId)
+        leafletProxy("sampleMap2", session) %>% removeShape(layerId = prev2$id) %>% addPolylines(data = lines, layerId = lines$tornadoId)
     }
     prev2$id <- lines$tornadoId
-    #lines.of.interest <- us[ which( us$GEO_ID %in% click.list$ids ) , ] # for later
+    #lines.of.interest <- us[ which( us$GEO_ID %in% click.list$ids ), ] # for later
     print(geoid_map2)
  
   })
