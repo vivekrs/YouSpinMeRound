@@ -156,7 +156,7 @@ getMagChart<- function() {
     layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus)
 }
 
-getChartData(data, x){
+getChartData <- function(data, x){
   result <- data %>% group_by(get(x), mag) %>% summarise(
     fat = sum(fat),
     inj = sum(inj),
@@ -479,9 +479,9 @@ server <- function(input, output, session) {
     chart1Data <<- getChartData(county1Data, switch(input$chartBySelect,
         "Year" = "yr",
         "Month" = "mo", 
-        "Hour" = "hr",
-        "Distance from Chicago" = ,
-        "County"
+        "Hour" = "hr"#,
+        #"Distance from Chicago" = ,
+        #"County"
     ))
     
     state2Data <- subset(plotData, st == input$state2Select)
