@@ -6,6 +6,7 @@ library(dplyr)
 library(plotly)
 library(shiny)
 library(shinyBS)
+library(DT)
 
 colorByArray <- c('magnitudeFilterColor','widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor', 'fatalitiesFilterColor')
 widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth','lossFilterWidth','injuriesFilterWidth','fatalitiesFilterWidth')
@@ -186,6 +187,11 @@ getChartData <- function(data, x){
   return(result)
 }
 
+getTable<-function(df, chartBy) {
+  colnames(df)<-c(chartBy, 'Magnitude', 'Fatalities', 'Injuries', 'Loss ($)', 'Count', 'Percent(per year)')
+  return(datatable(df, rownames= FALSE, options = list(scrollY = '100%')))
+}
+
 ui <- fluidPage(tags$head(tags$script(HTML(JScode))), 
   tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
   div(
@@ -300,16 +306,21 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
           "sampleMap2", width = "100%", height = "100%"
         )),
     div(id = "plotOne",
+        height = "100%",
         tabsetPanel(
           type = 'tabs',
           id='chartbox1',
           tabPanel(
-            'Parallel Coordinates',
+            'Injuries, Fatalities and Loss',
             plotlyOutput('parcoordchart1')
           ),
           tabPanel(
-            'Count and Percent',
+            'Number of Tornadoes',
             plotlyOutput('countpercent1')
+          ),
+          tabPanel(
+            'Table',
+            dataTableOutput('table1')
           )
         )
     ),
@@ -318,12 +329,16 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
           type = 'tabs',
           id='chartbox2',
           tabPanel(
-            'Parallel Coordinates',
+            'Injuries, Fatalities and Loss',
             plotlyOutput('parcoordchart2')
           ),
           tabPanel(
-            'Count and Percent',
+            'Number of Tornadoes',
             plotlyOutput('countpercent2')
+          ),
+          tabPanel(
+            'Table',
+            dataTableOutput('table2')
           )
         )
     )
@@ -581,6 +596,12 @@ server <- function(input, output, session) {
     })
     output$countpercent2<-renderPlotly({
       getMagnitudeChart(chartdata, 'Year')
+    })
+    output$table1 = DT::renderDataTable({
+      getTable(chartdata, 'Year')
+    })
+    output$table2 = DT::renderDataTable({
+      getTable(chartdata, 'Year')
     })
   })
 }
