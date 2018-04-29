@@ -1,10 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
 using CsvHelper;
+using GeoJSON.Net.Feature;
+using GeoJSON.Net.Geometry;
+using Newtonsoft.Json;
 
 namespace Munging
 {
@@ -12,7 +14,7 @@ namespace Munging
     {
         private static void Main(string[] args)
         {
-            new TornadoDataMunging().Munge(args[0], args[1]);
+            new TornadoDataMunging().Munge(args[0], args[1], args[2], args[3]);
         }
     }
 
@@ -20,7 +22,7 @@ namespace Munging
     {
         private readonly List<TornadoData> _result = new List<TornadoData>();
 
-        public void Munge(string inputFilename, string outputFilename)
+        public void Munge(string inputFilename, string allDataFilename, string countyDataFilename, string geoJsonDirectory)
         {
             using (TextReader inputFile = new StreamReader(inputFilename, Encoding.UTF8))
             {
@@ -28,7 +30,7 @@ namespace Munging
                 csv.Configuration.RegisterClassMap<TornadoDataReader>();
                 var records = csv.GetRecords<TornadoData>();
                 var instances = records
-                    .Where(r=>TornadoData.states.Contains(r.st))
+                    .Where(r => TornadoData.states.Contains(r.st))
                     .GroupBy(r => new { r.yr, r.om });//.OrderBy(g=>g.Key);
 
                 foreach (var instance in instances)
@@ -60,11 +62,51 @@ namespace Munging
                 }
             }
 
-            using (TextWriter outputFile = new StreamWriter(outputFilename, false, Encoding.UTF8))
+            using (TextWriter outputFile = new StreamWriter(allDataFilename, false, Encoding.UTF8))
             {
                 var csv = new CsvWriter(outputFile);
                 csv.Configuration.RegisterClassMap<TornadoDataWriter>();
                 csv.WriteRecords(_result);
+            }
+
+            using (TextWriter outputFile = new StreamWriter(countyDataFilename, false, Encoding.UTF8))
+            {
+                var data = from tornado in _result
+                           from county in tornado.fipsCodes
+                           let geoId = $"0500000US{tornado.stf:D2}{county:D3}"
+                           select new
+                           {
+                               geoId,
+                               tornado.inj,
+                               tornado.fat,
+                               tornado.dollarloss
+                           };
+                var groupings = from t in data
+                                group t by t.geoId
+                    into grp
+                                select new
+                                {
+                                    geoId = grp.Key,
+                                    inj = grp.Sum(t => t.inj),
+                                    fat = grp.Sum(t => t.fat),
+                                    dollarloss = grp.Sum(t => t.dollarloss)
+                                };
+
+                new CsvWriter(outputFile).WriteRecords(groupings);
+            }
+
+            foreach (var stf in _result.Select(r => r.stf).Distinct().ToList())
+            {
+                var features = _result.Where(t=>t.stf == stf)
+                    .Select(f => new Feature(
+                        new LineString(new[] { new Position(f.slat, f.slon), new Position(f.elat, f.elon) }),
+                        new Dictionary<string, object> { { "tornadoId", f.id } }));
+                var featureCollection = new FeatureCollection(new List<Feature>(features));
+                using (TextWriter outputFile = new StreamWriter($"{geoJsonDirectory}\\{stf}.geojson", false, Encoding.UTF8))
+                {
+                    var jsonData = JsonConvert.SerializeObject(featureCollection);
+                    outputFile.Write(jsonData);
+                }
             }
         }
 

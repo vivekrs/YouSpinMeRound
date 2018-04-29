@@ -86,13 +86,13 @@ namespace Munging
         public string time { get; set; }
         public string tz { get; set; }
         public string st { get; set; }
-        public string stf { get; set; }
+        public int stf { get; set; }
         public int stn { get; set; }
         public string mag { get; set; }
         public int inj { get; set; }
         public int fat { get; set; }
         public string loss { get; set; }
-        public string dollarloss { get; set; }
+        public long dollarloss { get; set; }
         public string closs { get; set; }
         public double slat { get; set; }
         public double slon { get; set; }
@@ -104,6 +104,7 @@ namespace Munging
         public string widm { get; set; }
         public string chidist { get; set; }
         public string chidistkm { get; set; }
+        public int chidistgrp { get; set; }
         public int ns { get; set; }
         public int sn { get; set; }
         public int sg { get; set; }
@@ -117,7 +118,7 @@ namespace Munging
 
         public IEnumerable<int> GetFipsCodes()
         {
-            return new[] {f1, f2, f3, f4}.Where(f => f != 0);
+            return new[] { f1, f2, f3, f4 }.Where(f => f != 0);
         }
 
         public void UpdateData()
@@ -126,15 +127,20 @@ namespace Munging
             hr = int.Parse(time.Split(':')[0]);
             if (int.TryParse(mag, out var m))
                 mag = magnitudes[m];
-            dollarloss = loss == "0" ? "NA" :
+            dollarloss = (long)decimal.Parse(
+                loss == "0" ? "0" : //"NA" :
                 yr < 1996 ? "5" + new string('0', int.Parse(loss)) :
                 yr < 2016 ? $"{decimal.Parse(loss) * 1000000}" :
-                loss;
-            fips = string.Join(';', fipsCodes.Distinct());
+                loss);
+            fips = fipsCodes.Distinct().Select(f => $":{f}:").Aggregate(string.Empty, (a, b) => a + b);
 
             var chiDist = GetDistanceFromLatLonInKm(slat, slon, 41.881832, -87.623177);
             chidistkm = string.Format("{0:0.00}", chiDist);
             chidist = string.Format("{0:0.00}", chiDist * 0.6213712);
+
+            chidistgrp = (int)(chiDist / 100);
+            //chidistgrp = (distgrp * 60) + " to " + ((distgrp + 1) * 60) + " miles";
+            //chidistgrpkm = (distgrp * 100) + " to " + ((distgrp + 1) * 100) + " kilometers";
 
             widm = string.Format("{0:0.00}", double.Parse(wid) * 0.9144);
             lenkm = string.Format("{0:0.00}", double.Parse(len) * 1.609344);
@@ -165,7 +171,7 @@ namespace Munging
         }
     }
 
-    public sealed class TornadoDataReader : CsvClassMap<TornadoData>
+    public sealed class TornadoDataReader : ClassMap<TornadoData>
     {
         public TornadoDataReader()
         {
@@ -177,12 +183,13 @@ namespace Munging
             Map(m => m.dollarloss).Ignore();
             Map(m => m.chidistkm).Ignore();
             Map(m => m.chidist).Ignore();
+            Map(m => m.chidistgrp).Ignore();
             Map(m => m.widm).Ignore();
             Map(m => m.lenkm).Ignore();
         }
     }
 
-    public sealed class TornadoDataWriter : CsvClassMap<TornadoData>
+    public sealed class TornadoDataWriter : ClassMap<TornadoData>
     {
         public TornadoDataWriter()
         {
