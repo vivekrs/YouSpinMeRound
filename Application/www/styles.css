@@ -167,6 +167,10 @@ div#table1 tbody tr, div#table2 tbody tr{
 #countpercent1 text.updatemenu-item-text, #countpercent2 text.updatemenu-item-text{
   fill: #c7c7c7 !important;
 }
+
+#parcoordchart1 svg.main-svg .parcoords .tick text, #parcoordchart2 svg.main-svg .parcoords .tick text {
+  text-shadow: none !important;
+}
 /*Wall styles*/
 
 @media (min-width: 2000px) {
