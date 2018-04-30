@@ -939,7 +939,7 @@ server <- function(input, output, session) {
   })
   
   observe({
-    print(paste(Sys.time(), "Observing 1", colorby(), widthby()))
+    print(paste(Sys.time(), "Observing 1:", input$state1Select, input$county1Select, colorby(), widthby()))
     
     if(nrow(county1Data()) > 0) {
       lines <- getStateGeoJson(input$state1Select)
@@ -970,16 +970,18 @@ server <- function(input, output, session) {
       if (length(prev1$id) != 0)
         leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id)
       
-      leafletProxy("sampleMap1", session) %>% addPolylines(
-        data = mergedData,
-        layerId = mergedData$tornadoId,
-        color = if(length(domain) == 1) palette[length(palette)] else quantiles(numerics),
-        weight = rescale(as.numeric(county1Data()[[widthby()]]), to = c(1, 5), from = widthRange),
-        opacity = 0.7,
-        label = labels
-      ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
+      if(length(mergedData) > 0) {
+        leafletProxy("sampleMap1", session) %>% addPolylines(
+          data = mergedData,
+          layerId = mergedData$tornadoId,
+          color = if(length(domain) == 1) palette[length(palette)] else quantiles(numerics),
+          weight = rescale(as.numeric(county1Data()[[widthby()]]), to = c(1, 5), from = widthRange),
+          opacity = 0.7,
+          label = labels
+        ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
       
-      prev1$id <- mergedData$tornadoId
+        prev1$id <- mergedData$tornadoId
+      }
     }
     else if (length(prev1$id) != 0) {
       leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id)
@@ -988,7 +990,7 @@ server <- function(input, output, session) {
   })
   
   observe({
-    print(paste(Sys.time(), "Observing 2", colorby(), widthby()))
+    print(paste(Sys.time(), "Observing 2:", input$state2Select, input$county2Select, colorby(), widthby()))
     
     if(nrow(county2Data()) > 0) {
 
@@ -1019,17 +1021,19 @@ server <- function(input, output, session) {
       if (length(prev2$id) != 0)
         leafletProxy("sampleMap2", session) %>% removeShape(layerId = prev2$id)
       
-      leafletProxy("sampleMap2", session) %>% addPolylines(
-        data = mergedData,
-        layerId = mergedData$tornadoId,
-        color = if(length(domain) == 1) palette[length(palette)] else quantiles(numerics),
-        weight = rescale(as.numeric(county2Data()[[widthby()]]), to = c(1, 5), from = widthRange),
-        opacity = 0.7,
-        label = labels
-      ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
+      if(length(mergedData) > 0) {
+        leafletProxy("sampleMap2", session) %>% addPolylines(
+          data = mergedData,
+          layerId = mergedData$tornadoId,
+          color = if(length(domain) == 1) palette[length(palette)] else quantiles(numerics),
+          weight = rescale(as.numeric(county2Data()[[widthby()]]), to = c(1, 5), from = widthRange),
+          opacity = 0.7,
+          label = labels
+        ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
       
-      prev2$id <- mergedData$tornadoId
+        prev2$id <- mergedData$tornadoId
       
+      }
     }
     else if (length(prev2$id) != 0) {
       leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev2$id)
@@ -1041,7 +1045,8 @@ server <- function(input, output, session) {
     click1 <- input$sampleMap1_shape_click
     stf <- getStfCtfFromMap(click1$id, TRUE)$stf
     ctf <- getStfCtfFromMap(click1$id, sum(c("Pick a County", "Show HeatMap") %in% input$sampleMap1_groups) == 0)$ctf
-    
+
+    county1Data(data.frame())    
     updateSelectInput(session, "state1Select", selected = stf)
     if(input$state1Select == stf)
       updateSelectInput(session, "county1Select", selected = if (ctf == -1) 0 else ctf)
@@ -1054,6 +1059,7 @@ server <- function(input, output, session) {
     stf <- getStfCtfFromMap(click2$id, TRUE)$stf
     ctf <- getStfCtfFromMap(click2$id, ! "Pick a County" %in% input$sampleMap2_groups)$ctf
     
+    county2Data(data.frame())    
     updateSelectInput(session, "state2Select", selected = stf)
     if(input$state2Select == stf)
       updateSelectInput(session, "county2Select", selected = if (ctf == -1) 0 else ctf)

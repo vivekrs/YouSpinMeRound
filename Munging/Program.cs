@@ -80,7 +80,7 @@ namespace Munging
                                //tornado.inj,
                                //tornado.fat,
                                //tornado.dollarloss,
-                               heat = (tornado.inj * 5000) + (tornado.fat * 1000000) + (tornado.dollarloss)
+                               tornado.heat
                            };
                 var groupings = from t in data
                                 group t by t.geoId

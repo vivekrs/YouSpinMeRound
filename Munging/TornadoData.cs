@@ -105,6 +105,7 @@ namespace Munging
         public string chidist { get; set; }
         public string chidistkm { get; set; }
         public int chidistgrp { get; set; }
+        public long heat { get; set; }
         public int ns { get; set; }
         public int sn { get; set; }
         public int sg { get; set; }
@@ -119,6 +120,11 @@ namespace Munging
         public IEnumerable<int> GetFipsCodes()
         {
             return new[] { f1, f2, f3, f4 }.Where(f => f != 0);
+        }
+
+        public long GetHeat()
+        {
+            return (inj * 5000) + (fat * 1000000) + (dollarloss);
         }
 
         public void UpdateData()
@@ -150,6 +156,8 @@ namespace Munging
                 elat = slat;
                 elon = slon;
             }
+
+            heat = GetHeat();
         }
 
         private double GetDistanceFromLatLonInKm(double lat1, double lon1, double lat2, double lon2)
@@ -186,6 +194,7 @@ namespace Munging
             Map(m => m.chidistgrp).Ignore();
             Map(m => m.widm).Ignore();
             Map(m => m.lenkm).Ignore();
+            Map(m => m.heat).Ignore();
         }
     }
 
