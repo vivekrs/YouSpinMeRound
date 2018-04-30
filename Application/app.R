@@ -9,6 +9,8 @@ library(shinyBS)
 library(DT)
 library(rgdal)
 library(scales)
+library(tidyr)
+library(htmltools)
 
 print(paste(Sys.time(), "Init"))
 colorByArray <- c('magnitudeFilterColor', 'widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor', 'fatalitiesFilterColor')
@@ -580,50 +582,50 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
   )
 )
 
-updateColorBy <-
-  function(isSelected, session, input, idOfSelectedColorBy, field) {
-    colorby <<- field
-    if (isSelected) {
-      for (i in colorByArray) {
-        updatePrettyToggle(session = session, inputId = i, value = i == idOfSelectedColorBy)
-      }
-    }
-    else{
-      anythingSelected <- FALSE
-      for (i in colorByArray) {
-        if (input[[i]]) 
-          anythingSelected <- TRUE
-      }
-      
-      if (anythingSelected == FALSE)
-        updatePrettyToggle(session = session, inputId = idOfSelectedColorBy, value = TRUE)
-    }
-  }
-
-updateWidthBy <-
-  function(isSelected, session, input, idOfSelectedWidthBy, field) {
-    widthby <<- field
-    if (isSelected) {
-      for (i in widthByArray) {
-        updatePrettyToggle(session = session, inputId = i, value = i == idOfSelectedWidthBy)
-      }
-    }
-    else{
-      anythingSelected <- FALSE
-      for (i in widthByArray) {
-        if (input[[i]]) 
-          anythingSelected <- TRUE
-      }
-      
-      if (anythingSelected == FALSE)
-        updatePrettyToggle(session = session, inputId = idOfSelectedWidthBy, value = TRUE)
-    }
-  }
-
 server <- function(input, output, session) {
   colorby <- reactiveVal("inj")
   widthby <- reactiveVal("fat")
   heatmapby <- reactiveVal("inj")
+  
+  updateColorBy <-
+    function(isSelected, session, input, idOfSelectedColorBy, field) {
+      if (isSelected) {
+        colorby(field)
+        for (i in colorByArray) {
+          updatePrettyToggle(session = session, inputId = i, value = i == idOfSelectedColorBy)
+        }
+      }
+      else{
+        anythingSelected <- FALSE
+        for (i in colorByArray) {
+          if (input[[i]]) 
+            anythingSelected <- TRUE
+        }
+        
+        if (anythingSelected == FALSE)
+          updatePrettyToggle(session = session, inputId = idOfSelectedColorBy, value = TRUE)
+      }
+    }
+  
+  updateWidthBy <-
+    function(isSelected, session, input, idOfSelectedWidthBy, field) {
+      if (isSelected) {
+        widthby(field)
+        for (i in widthByArray) {
+          updatePrettyToggle(session = session, inputId = i, value = i == idOfSelectedWidthBy)
+        }
+      }
+      else{
+        anythingSelected <- FALSE
+        for (i in widthByArray) {
+          if (input[[i]]) 
+            anythingSelected <- TRUE
+        }
+        
+        if (anythingSelected == FALSE)
+          updatePrettyToggle(session = session, inputId = idOfSelectedWidthBy, value = TRUE)
+      }
+    }
   
   county1Data <- reactiveVal(data.frame())
   county2Data <- reactiveVal(data.frame())
@@ -801,7 +803,7 @@ server <- function(input, output, session) {
       "Hour" = "hr", 
       "Distance from Chicago" = 'chidistgrp', 
       "County" = 'fips'
-    ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state1Select)
+    ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state1Select))
     }
     
     state2Data <- subset(plotData, stf == input$state2Select)
@@ -821,7 +823,7 @@ server <- function(input, output, session) {
       "Hour" = "hr", 
       "Distance from Chicago" = 'chidistgrp',
       "County" = 'fips'
-    ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state2Select)
+    ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state2Select))
     }
     output$parcoordchart1<-renderPlotly({
       getParCoordChart(chart1Data(), input$chartBySelect)
@@ -862,32 +864,44 @@ server <- function(input, output, session) {
   
   observe({
     print(paste(Sys.time(), "Observing 1"))
-    
-    if (length(prev1$id) != 0)
-      leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id)
+    print(colorby())
     
     if(nrow(county1Data()) > 0) {
       lines <- getStateGeoJson(input$state1Select)
       mergedData <- merge(lines, county1Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
-      uniques <- unique(chart1Data()[[colorby()]])
-      domain <- unique(c(uniques, unique(chart2Data()[[colorby()]])))
+      numerics <- as.numeric(county1Data()[[colorby()]])
+      uniques <- unique(numerics)
+      domain <- unique(c(uniques, unique(as.numeric(county2Data()[[colorby()]]))))
+      print("Domain 1")
+      print(domain)
       if(length(domain) == 1) 
         domain <- c(domain, Inf)
       quantiles <- colorQuantile(
         getPalette(input$sampleMap1_groups[1]), 
         domain = domain, 
-        n = min(7, length(uniques)))
+        n = min(7, length(domain)))
       
       minlat <- min(c(county1Data()$slat, county1Data()$elat))
       minlon <- min(c(county1Data()$slon, county1Data()$elon))
       maxlat <- max(c(county1Data()$slat, county1Data()$elat))
       maxlon <- max(c(county1Data()$slon, county1Data()$elon))
       
+      labels <- paste(mergedData$yr, "-", mergedData$mo, "-", mergedData$dy, 
+                      "<br><b>Magnitude: </b>", mergedData$mag,
+                      "<br><b>Injuries: </b>", mergedData$inj,
+                      "<br><b>Fatalities: </b>", mergedData$fat,
+                      "<br><b>Loss: </b> USD", format(mergedData$dollarloss, big.mark = ",")) %>% 
+        lapply(htmltools::HTML)
+      
+      if (length(prev1$id) != 0)
+        leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id)
+      
       leafletProxy("sampleMap1", session) %>% addPolylines(
         data = mergedData,
         layerId = mergedData$tornadoId,
-        color = quantiles(chart1Data()[[colorby()]]),
-        opacity = 0.7
+        color = quantiles(numerics),
+        opacity = 0.7,
+        label = labels
       ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
       
       prev1$id <- mergedData$tornadoId
@@ -896,32 +910,44 @@ server <- function(input, output, session) {
   
   observe({
     print(paste(Sys.time(), "Observing 2"))
-    
-    if (length(prev2$id) != 0)
-      leafletProxy("sampleMap2", session) %>% removeShape(layerId = prev2$id)
+    print(colorby())
     
     if(nrow(county2Data()) > 0) {
       lines <- getStateGeoJson(input$state2Select)
       mergedData <- merge(lines, county2Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
-      uniques <- unique(chart2Data()[[colorby()]])
-      domain <- unique(c(uniques, unique(chart1Data()[[colorby()]])))
+      numerics <- as.numeric(county2Data()[[colorby()]])
+      uniques <- unique(numerics)
+      domain <- unique(c(uniques, unique(as.numeric(county1Data()[[colorby()]]))))
+      print("Domain 2")
+      print(domain)
       if(length(domain) == 1) 
         domain <- c(domain, Inf)
       quantiles <- colorQuantile(
         getPalette(input$sampleMap2_groups[1]), 
         domain = domain, 
-        n = min(7, length(uniques)))
+        n = min(7, length(domain)))
       
       minlat <- min(c(county2Data()$slat, county2Data()$elat))
       minlon <- min(c(county2Data()$slon, county2Data()$elon))
       maxlat <- max(c(county2Data()$slat, county2Data()$elat))
       maxlon <- max(c(county2Data()$slon, county2Data()$elon))
       
+      labels <- paste(mergedData$yr, "-", mergedData$mo, "-", mergedData$dy, 
+                      "<br><b>Magnitude: </b>", mergedData$mag,
+                      "<br><b>Injuries: </b>", mergedData$inj,
+                      "<br><b>Fatalities: </b>", mergedData$fat,
+                      "<br><b>Loss: </b> USD", format(mergedData$dollarloss, big.mark = ",")) %>% 
+        lapply(htmltools::HTML)
+      
+      if (length(prev2$id) != 0)
+        leafletProxy("sampleMap2", session) %>% removeShape(layerId = prev2$id)
+      
       leafletProxy("sampleMap2", session) %>% addPolylines(
         data = mergedData,
         layerId = mergedData$tornadoId,
-        color = quantiles(chart2Data()[[colorby()]]),
-        opacity = 0.7
+        color = quantiles(numerics),
+        opacity = 0.7,
+        label = labels
       ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
       
       prev2$id <- mergedData$tornadoId

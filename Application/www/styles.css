@@ -89,7 +89,7 @@ body {
 .buttonGroup {
   float: right;
   max-width: 150px;
-  margin-top: 10px;
+  margin-top: 0;
 }
 
 .buttonGroup div {
