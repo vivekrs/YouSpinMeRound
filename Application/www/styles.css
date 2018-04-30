@@ -7,7 +7,7 @@ body {
 }
 
 a {
-  color: lightblue;
+  color: #ffa726;
 }
 
 #nav {
@@ -122,6 +122,17 @@ h4 {
 .irs-min,
 .irs-max {
   color: #c7c7c7;
+}
+
+.irs-bar,
+.irs-bar-edge,
+.irs-single,
+.irs-grid-pol {
+  background: #e65100;
+  border-color: #e65100;
+}
+.irs-to, .irs-from {
+  background-color: #fb8c00;
 }
 
 #about {
