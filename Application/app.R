@@ -22,7 +22,7 @@ highContrastPalette <- c('#ffd59b','#ffa474','#f47461','#db4551','#b81b34','#8b0
 satellitePalette <- c('#FFE0B2','#FFCC80','#FFA726','#FB8C00','#F57C00','#E65100','#702800')
 
 getPalette <- function(layer){
-  print(paste(Sys.time(), "getPalette", layer))
+  # print(paste(Sys.time(), "getPalette", layer))
   if(is.null(layer)) return(darkPalette)
   
   palette <- switch(
@@ -208,7 +208,7 @@ print(paste(Sys.time(), "Initializing functions"))
 
 allMag <- c("All")
 magnitudes <- c(levels(data$mag), allMag)
-magnitudesSelected <- c()
+magnitudesSelected <- magnitudes
 ignoreNextMag <- FALSE
 
 getCounties <- function(stf) {
@@ -467,8 +467,8 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
         div(
           id = "yearDiv", 
           class = "filterContainer", 
-          sliderInput("yearSlider", "Year", min = 1950, max = 2017, value = c(2000, 2017), step = 1, 
-            sep = "", width = "100%", animate = animationOptions(interval = 300, loop = FALSE))
+          sliderInput("yearSlider", "Year", min = 1950, max = 2017, value = c(2000, 2017), step = 5, 
+            sep = "", width = "100%", animate = animationOptions(interval = 4000, loop = FALSE))
         )
       ), 
       
@@ -734,6 +734,7 @@ server <- function(input, output, session) {
       
       newMagnitudes <- c()
       if (allInteraction) {
+        print("All Interaction")
         newMagnitudes <- if (allMag %in% input$magGroup) magnitudes else c()
         ignoreNextMag <<- TRUE
       }
@@ -863,8 +864,7 @@ server <- function(input, output, session) {
   })
   
   observe({
-    print(paste(Sys.time(), "Observing 1"))
-    print(colorby())
+    print(paste(Sys.time(), "Observing 1", colorby(), widthby()))
     
     if(nrow(county1Data()) > 0) {
       lines <- getStateGeoJson(input$state1Select)
@@ -872,19 +872,16 @@ server <- function(input, output, session) {
       numerics <- as.numeric(county1Data()[[colorby()]])
       uniques <- unique(numerics)
       domain <- unique(c(uniques, unique(as.numeric(county2Data()[[colorby()]]))))
-      print("Domain 1")
-      print(domain)
-      if(length(domain) == 1) 
-        domain <- c(domain, Inf)
-      quantiles <- colorQuantile(
-        getPalette(input$sampleMap1_groups[1]), 
-        domain = domain, 
-        n = min(7, length(domain)))
+      palette <- getPalette(input$sampleMap1_groups[1])
+      quantiles <- colorQuantile(palette, domain, n = min(7, length(domain)))
       
       minlat <- min(c(county1Data()$slat, county1Data()$elat))
       minlon <- min(c(county1Data()$slon, county1Data()$elon))
       maxlat <- max(c(county1Data()$slat, county1Data()$elat))
       maxlon <- max(c(county1Data()$slon, county1Data()$elon))
+      
+      combinedData <- c(county1Data()[[widthby()]], county2Data()[[widthby()]])
+      widthRange <- c(min(combinedData), max(combinedData))
       
       labels <- paste(mergedData$yr, "-", mergedData$mo, "-", mergedData$dy, 
                       "<br><b>Magnitude: </b>", mergedData$mag,
@@ -899,18 +896,22 @@ server <- function(input, output, session) {
       leafletProxy("sampleMap1", session) %>% addPolylines(
         data = mergedData,
         layerId = mergedData$tornadoId,
-        color = quantiles(numerics),
+        color = if(length(domain) == 1) palette[length(palette)] else quantiles(numerics),
+        weight = rescale(as.numeric(county1Data()[[widthby()]]), to = c(1, 5), from = widthRange),
         opacity = 0.7,
         label = labels
       ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
       
       prev1$id <- mergedData$tornadoId
     }
+    else if (length(prev1$id) != 0) {
+      leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id)
+      prev1$id <- vector()
+    }
   })
   
   observe({
-    print(paste(Sys.time(), "Observing 2"))
-    print(colorby())
+    print(paste(Sys.time(), "Observing 2", colorby(), widthby()))
     
     if(nrow(county2Data()) > 0) {
       lines <- getStateGeoJson(input$state2Select)
@@ -918,19 +919,16 @@ server <- function(input, output, session) {
       numerics <- as.numeric(county2Data()[[colorby()]])
       uniques <- unique(numerics)
       domain <- unique(c(uniques, unique(as.numeric(county1Data()[[colorby()]]))))
-      print("Domain 2")
-      print(domain)
-      if(length(domain) == 1) 
-        domain <- c(domain, Inf)
-      quantiles <- colorQuantile(
-        getPalette(input$sampleMap2_groups[1]), 
-        domain = domain, 
-        n = min(7, length(domain)))
+      palette <- getPalette(input$sampleMap2_groups[1])
+      quantiles <- colorQuantile(palette, domain, n = min(7, length(domain)))
       
       minlat <- min(c(county2Data()$slat, county2Data()$elat))
       minlon <- min(c(county2Data()$slon, county2Data()$elon))
       maxlat <- max(c(county2Data()$slat, county2Data()$elat))
       maxlon <- max(c(county2Data()$slon, county2Data()$elon))
+      
+      combinedData <- c(county1Data()[[widthby()]], county2Data()[[widthby()]])
+      widthRange <- c(min(combinedData), max(combinedData))
       
       labels <- paste(mergedData$yr, "-", mergedData$mo, "-", mergedData$dy, 
                       "<br><b>Magnitude: </b>", mergedData$mag,
@@ -945,12 +943,17 @@ server <- function(input, output, session) {
       leafletProxy("sampleMap2", session) %>% addPolylines(
         data = mergedData,
         layerId = mergedData$tornadoId,
-        color = quantiles(numerics),
+        color = if(length(domain) == 1) palette[length(palette)] else quantiles(numerics),
+        weight = rescale(as.numeric(county2Data()[[widthby()]]), to = c(1, 5), from = widthRange),
         opacity = 0.7,
         label = labels
       ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
       
       prev2$id <- mergedData$tornadoId
+    }
+    else if (length(prev2$id) != 0) {
+      leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev2$id)
+      prev2$id <- vector()
     }
   })
   
