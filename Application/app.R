@@ -47,6 +47,7 @@ colnames(timesDf) <- c('TimeName', 'TimeNumber')
 print(paste(Sys.time(), "Loading countydata.csv"))
 county_heatmap <- read.csv("data/countydata.csv", fileEncoding = "UTF-8-BOM")
 
+setCounty <- 0
 us_counties <- NULL
 counties_popup <- NULL
 getUsCounties <- function() {
@@ -54,10 +55,9 @@ getUsCounties <- function() {
     print(paste(Sys.time(), "Loading uscounties.geojson"))
     us_counties <- rgdal::readOGR("data/uscounties.geojson")
     us_counties <- merge(us_counties, county_heatmap, by.x="GEO_ID", by.y = "geoId")
-    us_counties[is.na(us_counties$inj), "inj"] <- 0
+    us_counties[is.na(us_counties$heat), "heat"] <- 0
 
-    counties_popup <<- paste0("<strong>County: </strong>", us_counties$NAME, 
-                         "<br><strong>Injuries: </strong>", us_counties$inj)
+    counties_popup <<- paste0("<strong>County: </strong>", us_counties$NAME)
   }
   return(us_counties)
 }
@@ -145,8 +145,8 @@ foundational.map <- function() {
   y <- y %>%
     addPolygons(
       data = uscounties,
-      fillOpacity = rescale(uscounties[["heat"]], c(0, 1)),
-      opacity = rescale(uscounties[["heat"]], c(0, 1)),
+      fillOpacity = rescale(as.numeric(uscounties[["heat"]]), c(0, 1)),
+      opacity = rescale(as.numeric(uscounties[["heat"]]), c(0, 1)),
       color = "#FF0000",
       weight = 2,
       layerId = paste0(uscounties$GEO_ID, "_HeatMap"),
@@ -696,12 +696,14 @@ server <- function(input, output, session) {
   
   observeEvent(input$state1Select, {
     choices <- getCounties(input$state1Select)
-    updateSelectInput(session, "county1Select", "County 1", choices, 0)
+    updateSelectInput(session, "county1Select", "County 1", choices, setCounty)
+    setCounty <<- 0
   })
   
   observeEvent(input$state2Select, {
     choices <- getCounties(input$state2Select)
-    updateSelectInput(session, "county2Select", "County 2", choices, 0)
+    updateSelectInput(session, "county2Select", "County 2", choices, setCounty)
+    setCounty <<- 0
   })
   
   observeEvent(input$magnitudeFilterColor, {
@@ -980,10 +982,13 @@ server <- function(input, output, session) {
   observeEvent(input$sampleMap1_shape_click, ignoreNULL = T, ignoreInit = T, {
     click1 <- input$sampleMap1_shape_click
     stf <- getStfCtfFromMap(click1$id, TRUE)$stf
-    ctf <- getStfCtfFromMap(click1$id, ! "Pick a County" %in% input$sampleMap1_groups)$ctf
+    ctf <- getStfCtfFromMap(click1$id, sum(c("Pick a County", "Show HeatMap") %in% input$sampleMap1_groups) == 0)$ctf
     
     updateSelectInput(session, "state1Select", selected = stf)
-    updateSelectInput(session, "county1Select", selected = if (ctf == -1) 0 else ctf)
+    if(input$state1Select == stf)
+      updateSelectInput(session, "county1Select", selected = if (ctf == -1) 0 else ctf)
+    else
+      setCounty <<- if (ctf == -1) 0 else ctf
   })
 
   observeEvent(input$sampleMap2_shape_click, ignoreNULL = T, ignoreInit = T, {
@@ -992,7 +997,10 @@ server <- function(input, output, session) {
     ctf <- getStfCtfFromMap(click2$id, ! "Pick a County" %in% input$sampleMap2_groups)$ctf
     
     updateSelectInput(session, "state2Select", selected = stf)
-    updateSelectInput(session, "county2Select", selected = if (ctf == -1) 0 else ctf)
+    if(input$state2Select == stf)
+      updateSelectInput(session, "county2Select", selected = if (ctf == -1) 0 else ctf)
+    else
+      setCounty <<- if (ctf == -1) 0 else ctf
   })
 }
 
