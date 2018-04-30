@@ -287,7 +287,7 @@ getMagnitudeChart<- function(df, chartBy, fontSize, plotHeight) {
 
   x<-switch (chartBy, 
              'Year' = 'yr', 
-             'Month' = 'mo', 
+             'Month' = 'MonthName', 
              'Hour' = 'HourName', 
              'Distance from Chicago' = 'DistanceName', 
              'County' = 'name'
@@ -358,14 +358,15 @@ getParCoordChart<-function(df, chartBy, fontSize, plotHeight) {
       line = list(
         color = ~as.numeric(mag),
         # colorscale='[[0, "rgb(50,50,255)", [1, "rgb(50,50,50)"]]',
-        colorscale = 'YlGnBu',
+        colorscale = 'Reds',
         showscale = T, 
         colorbar = list(
           tickmode = 'array', 
           tickvals = as.numeric(sort(unique(df$mag))), 
           ticktext = sort(unique(df$mag))
         )
-      ), 
+      ),
+      labelfont = list(color='White'),
       dimensions = list(
           list(label=chartBy, values=df[[x]], tickvals=vals, ticktext=text),
           list(label='Magnitude', values=~as.numeric(mag), tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))), 
@@ -402,6 +403,15 @@ getChartData <- function(data, x, isMetric, is24Hour, state){
               all = TRUE
             )
           },
+          'mo' = {
+            result<-merge(
+              result, 
+              monthsDf, 
+              by.x='mo', 
+              by.y='MonthNumber', 
+              all.x=T
+            )
+          },
           'chidistgrp' = {
             result<-merge(
               result,
@@ -435,7 +445,7 @@ getChartData <- function(data, x, isMetric, is24Hour, state){
 getTable<-function(df, chartBy) {
   switch (chartBy,
     'Month' =  {
-      df<-merge(df, monthsDf, by.x='mo', by.y='MonthNumber', all.x=T)
+      #df<-merge(df, monthsDf, by.x='mo', by.y='MonthNumber', all.x=T)
       df<-df[c(8,2,3,4,5,6,7)]
     },
     'Hour' = {
