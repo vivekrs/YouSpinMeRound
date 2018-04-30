@@ -105,7 +105,7 @@ getStfCtfFromMap <- function(id, state = FALSE)
 }
 
 # function to create foundational map
-foundational.map <- function(heatmapby) {
+foundational.map <- function() {
   print(paste(Sys.time(), "Loading Foundational Map"))
   
   y <- leaflet() %>%
@@ -145,8 +145,8 @@ foundational.map <- function(heatmapby) {
   y <- y %>%
     addPolygons(
       data = uscounties,
-      fillOpacity = rescale(uscounties[[heatmapby]], c(0, 1)),
-      opacity = rescale(uscounties[[heatmapby]], c(0, 1)),
+      fillOpacity = rescale(uscounties[["heat"]], c(0, 1)),
+      opacity = rescale(uscounties[["heat"]], c(0, 1)),
       color = "#FF0000",
       weight = 2,
       layerId = paste0(uscounties$GEO_ID, "_HeatMap"),
@@ -585,7 +585,6 @@ ui <- fluidPage(tags$head(tags$script(HTML(JScode))),
 server <- function(input, output, session) {
   colorby <- reactiveVal("inj")
   widthby <- reactiveVal("fat")
-  heatmapby <- reactiveVal("inj")
   
   updateColorBy <-
     function(isSelected, session, input, idOfSelectedColorBy, field) {
@@ -633,7 +632,7 @@ server <- function(input, output, session) {
   chart1Data <- reactiveVal(data.frame())
   chart2Data <- reactiveVal(data.frame())
 
-  myMap_reval <- reactiveVal(foundational.map("inj"))
+  myMap_reval <- reactiveVal(foundational.map())
   group <- list(id=vector())
 
   prev1 <- reactiveValues(id = vector())

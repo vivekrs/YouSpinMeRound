@@ -77,9 +77,10 @@ namespace Munging
                            select new
                            {
                                geoId,
-                               tornado.inj,
-                               tornado.fat,
-                               tornado.dollarloss
+                               //tornado.inj,
+                               //tornado.fat,
+                               //tornado.dollarloss,
+                               heat = (tornado.inj * 5000) + (tornado.fat * 1000000) + (tornado.dollarloss)
                            };
                 var groupings = from t in data
                                 group t by t.geoId
@@ -87,9 +88,10 @@ namespace Munging
                                 select new
                                 {
                                     geoId = grp.Key,
-                                    inj = grp.Sum(t => t.inj),
-                                    fat = grp.Sum(t => t.fat),
-                                    dollarloss = grp.Sum(t => t.dollarloss)
+                                    heat = grp.Sum(t => t.heat)
+                                    //inj = grp.Sum(t => t.inj),
+                                    //fat = grp.Sum(t => t.fat),
+                                    //dollarloss = grp.Sum(t => t.dollarloss)
                                 };
 
                 new CsvWriter(outputFile).WriteRecords(groupings);
@@ -97,7 +99,7 @@ namespace Munging
 
             foreach (var stf in _result.Select(r => r.stf).Distinct().ToList())
             {
-                var features = _result.Where(t=>t.stf == stf)
+                var features = _result.Where(t => t.stf == stf)
                     .Select(f => new Feature(
                         new LineString(new[] { new Position(f.slat, f.slon), new Position(f.elat, f.elon) }),
                         new Dictionary<string, object> { { "tornadoId", f.id } }));
