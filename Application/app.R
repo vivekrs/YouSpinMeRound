@@ -144,14 +144,18 @@ foundational.map <- function() {
       group = "Pick a County",
       popup = counties_popup
     )
-
+  
+  quantiles <- quantile(uscounties$heat, c(0, 0.1, 0.3, 0.5, 0.7, 0.8, 0.9, 0.95, 0.97, 0.99, 1))
+  cuts <- cut(uscounties$heat, breaks = as.numeric(quantiles))
+  scaled <- rescale(as.numeric(cuts), c(0.01, 0.3))
+  scaled[is.na(scaled)] <- 0
   y <- y %>%
     addPolygons(
       data = uscounties,
-      fillOpacity = rescale(as.numeric(uscounties[["heat"]]), c(0, 1)),
-      opacity = rescale(as.numeric(uscounties[["heat"]]), c(0, 1)),
-      color = "#FF0000",
-      weight = 2,
+      fillOpacity = scaled,
+      opacity = scaled,
+      color = "#EF5350",
+      weight = 1,
       layerId = paste0(uscounties$GEO_ID, "_HeatMap"),
       group = "Show HeatMap",
       popup = counties_popup
@@ -499,7 +503,8 @@ ui <- fluidPage(
       div(
         class = "filter-group", 
         h1("You Spin Me Round"), 
-        actionButton("aboutButton", class = "action_button about_button", label = img(src = "images/about.png"))
+        actionButton("aboutButton", class = "action_button about_button", label = img(src = "images/about.png")),
+        materialSwitch("showTop10", "Top 10")
       ), 
       
       div(class = "spacer"), 
@@ -520,6 +525,7 @@ ui <- fluidPage(
         selectInput("county2Select", "County 2", c("All"), "All")
       ), 
       
+      div(class = "spacer"), 
       div(
         class = "filter-group", 
         selectInput("chartBySelect", "Chart By:", 
@@ -867,6 +873,9 @@ server <- function(input, output, session) {
     newCountyData <- if (input$county1Select == 0) state1Data else
       subset(state1Data, grepl(paste0(":", input$county1Select, ":"), fips, fixed = TRUE))
     
+    if(input$showTop10)
+      newCountyData <- head(arrange(newCountyData, desc(heat)), n = 10)
+    
     if(!identical(county1Data(), newCountyData)) {
       print(paste(Sys.time(), "Updating County 1 Data"))
       county1Data(newCountyData)
@@ -885,6 +894,9 @@ server <- function(input, output, session) {
     output$state2Count <- renderText(paste(nrow(state2Data), "records"))
     newCountyData <- if (input$county2Select == 0) state2Data else
       subset(state2Data, grepl(paste0(":", input$county2Select, ":"), fips, fixed = TRUE))
+    
+    if(input$showTop10)
+      newCountyData <- head(arrange(newCountyData, desc(heat)), n = 10)
     
     if(!identical(county2Data(), newCountyData)) {
       print(paste(Sys.time(), "Updating County 2 Data"))
@@ -964,7 +976,7 @@ server <- function(input, output, session) {
                       "<br><b>Magnitude: </b>", mergedData$mag,
                       "<br><b>Injuries: </b>", mergedData$inj,
                       "<br><b>Fatalities: </b>", mergedData$fat,
-                      "<br><b>Loss: </b> USD", format(mergedData$dollarloss, big.mark = ",")) %>% 
+                      "<br><b>Loss: </b> USD", format(mergedData$dollarloss, big.mark = ",", scientific = FALSE)) %>% 
         lapply(htmltools::HTML)
       
       if (length(prev1$id) != 0)
@@ -975,8 +987,8 @@ server <- function(input, output, session) {
           data = mergedData,
           layerId = mergedData$tornadoId,
           color = if(length(domain) == 1) palette[length(palette)] else quantiles(numerics),
-          weight = rescale(as.numeric(county1Data()[[widthby()]]), to = c(1, 5), from = widthRange),
-          opacity = 0.7,
+          weight = rescale(as.numeric(county1Data()[[widthby()]]), to = c(3, 7), from = widthRange),
+          opacity = 1,
           label = labels
         ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
       
@@ -1026,8 +1038,8 @@ server <- function(input, output, session) {
           data = mergedData,
           layerId = mergedData$tornadoId,
           color = if(length(domain) == 1) palette[length(palette)] else quantiles(numerics),
-          weight = rescale(as.numeric(county2Data()[[widthby()]]), to = c(1, 5), from = widthRange),
-          opacity = 0.7,
+          weight = rescale(as.numeric(county2Data()[[widthby()]]), to = c(3, 7), from = widthRange),
+          opacity = 1,
           label = labels
         ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
       
