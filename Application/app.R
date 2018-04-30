@@ -292,9 +292,6 @@ getMagnitudeChart<- function(df, chartBy, fontSize, plotHeight) {
              'Distance from Chicago' = 'DistanceName', 
              'County' = 'name'
   )
-  
-  # yrcount<-subset(data, st=='IL') %>% count(yr, mag) %>% group_by(yr) %>% mutate(percent = n/sum(n))
-  
   updatemenus <-list(
     list(
       buttons = list(
@@ -316,7 +313,17 @@ getMagnitudeChart<- function(df, chartBy, fontSize, plotHeight) {
         ))
   )
   
-  return(plot_ly(df, type = 'bar', x = ~get(x), y = ~count, marker = list(color = ~as.numeric(df$mag), showscale = TRUE, colorbar=list(tickmode='array', tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))))) %>%
+  return(plot_ly(df, 
+                 type = 'bar', 
+                 x = df[[x]], 
+                 y = ~count, 
+                 marker = list(
+                   color = ~as.numeric(df$mag), 
+                   showscale = TRUE, 
+                   colorbar=list(tickmode='array', 
+                                 tickvals=as.numeric(sort(unique(df$mag))), 
+                                 ticktext=sort(unique(df$mag)))
+                  )) %>%
            layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus, 
                   paper_bgcolor='#262626', plot_bgcolor='#262626',
                   xaxis = list(title = 'Year', color = '#c7c7c7'), yaxis = list(title = '', color = '#c7c7c7')) %>% 
@@ -402,6 +409,7 @@ getChartData <- function(data, x, isMetric, is24Hour, state){
               by.y = 'HourNumber',
               all = TRUE
             )
+            result$HourName<-ordered(result$HourName, hours(is24Hour))
           },
           'mo' = {
             result<-merge(
@@ -411,6 +419,7 @@ getChartData <- function(data, x, isMetric, is24Hour, state){
               by.y='MonthNumber', 
               all.x=T
             )
+            result$MonthName<-ordered(result$MonthName, monthsDf$MonthName)
           },
           'chidistgrp' = {
             result<-merge(
@@ -720,7 +729,7 @@ server <- function(input, output, session) {
         hr(), 
         h5("Team: R You Shiny"), 
         p("Amey Barapatre | Sai Phaltankar | Jaspreet Kaur Sohal | Vivek R. Shivaprabhu"), 
-        easyClose = TRUE
+        easyClose = TRUE, size = "l"
       )
     )
   })
