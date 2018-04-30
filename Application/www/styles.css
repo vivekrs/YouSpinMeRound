@@ -23,7 +23,7 @@ a {
   width: 100%;
   background-color: #919191;
   display: grid;
-  grid-gap: 1em;
+  grid-gap: 0.5em;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   grid-template-areas: "controls mapOne mapOne mapOne" "controls mapTwo mapTwo mapTwo" "plotOne plotOne plotTwo plotTwo"
 }
@@ -82,12 +82,14 @@ a {
 
 #plotOne {
   grid-area: plotOne;
-  background-color: #090909;
+  background-color: #262626;
+  padding: 25px;
 }
 
 #plotTwo {
   grid-area: plotTwo;
-  background-color: #090909;
+  background-color: #262626;
+  padding: 25px;
 }
 
 .buttonGroup {
@@ -145,13 +147,33 @@ h4 {
   background-color: #090909;
 }
 
+div#table1 label, div#table2 label{
+  color: #c7c7c7;
+}
+
+div#table1 tbody tr, div#table2 tbody tr{
+  background-color: #262626;
+  color: #c7c7c7;
+}
+
+.dataTables_wrapper .dataTables_info{
+  color: #c7c7c7;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button  {
+  color: #c7c7c7 !important;
+}
+
+#countpercent1 text.updatemenu-item-text, #countpercent2 text.updatemenu-item-text{
+  fill: #c7c7c7 !important;
+}
 /*Wall styles*/
 
 @media (min-width: 2000px) {
   #container {
     height: 100vh;
     grid-template-columns: 6fr 7fr 7fr;
-    padding-bottom: 1em;
+    padding-bottom: 0.5em;
     grid-template-rows: 1fr 4fr 4fr;
     grid-template-areas: "controls controls controls" "plotOne mapOne mapTwo" "plotTwo mapOne mapTwo"
   }
@@ -160,11 +182,11 @@ h4 {
     align-items: flex-start;
   }
   #mapTwo {
-    margin-right: 1em;
+    margin-right: 0.5em;
   }
   #plotOne,
   #plotTwo {
-    margin-left: 1em;
+    margin-left: 0.5em;
   }
   h1 {
     font-size: 2vh;

@@ -12,6 +12,9 @@ library(scales)
 library(tidyr)
 library(htmltools)
 
+labelFontSize <- 12
+plotHeight <- 400
+
 print(paste(Sys.time(), "Init"))
 colorByArray <- c('magnitudeFilterColor', 'widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor', 'fatalitiesFilterColor')
 widthByArray <- c('magnitudeFilterWidth', 'distanceFilterWidth', 'lossFilterWidth', 'injuriesFilterWidth', 'fatalitiesFilterWidth')
@@ -279,8 +282,9 @@ createColorButtonGroup <- function(filter_id) {
       )
 }
 
-getMagnitudeChart<- function(df, chartBy) {
-  print(df$DistanceName)
+
+getMagnitudeChart<- function(df, chartBy, fontSize, plotHeight) {
+
   x<-switch (chartBy, 
              'Year' = 'yr', 
              'Month' = 'mo', 
@@ -312,11 +316,14 @@ getMagnitudeChart<- function(df, chartBy) {
         ))
   )
   
-  return(plot_ly(df, type = 'bar', x = df[[x]], y = ~count, marker = list(color = ~as.numeric(df$mag), showscale = TRUE, colorbar=list(tickmode='array', tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))))) %>%
-           layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus))
+  return(plot_ly(df, type = 'bar', x = ~get(x), y = ~count, marker = list(color = ~as.numeric(df$mag), showscale = TRUE, colorbar=list(tickmode='array', tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))))) %>%
+           layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus, 
+                  paper_bgcolor='#262626', plot_bgcolor='#262626',
+                  xaxis = list(title = 'Year', color = '#c7c7c7'), yaxis = list(title = '', color = '#c7c7c7')) %>% 
+           layout(height = plotHeight,font = list(size = fontSize, color = '#c7c7c7') ))
 }
 
-getParCoordChart<-function(df, chartBy) {
+getParCoordChart<-function(df, chartBy, fontSize, plotHeight) {
   switch (chartBy, 
              'Year' = {
                x<-'yr'
@@ -365,7 +372,7 @@ getParCoordChart<-function(df, chartBy) {
           list(label='Injuries', values=~inj), 
           list(label='Fatalities', values=~fat), 
           list(label='Loss ($)', values=~dl)
-  )))
+  )) %>% layout(height = plotHeight, font = list(size = fontSize, color = '#c7c7c7')))
 }
 
 getChartData <- function(data, x, isMetric, is24Hour, state){
@@ -450,7 +457,21 @@ getTable<-function(df, chartBy) {
 }
 
 print(paste(Sys.time(), "Initializing UI"))
-ui <- fluidPage(tags$head(tags$script(HTML(JScode))), 
+ui <- fluidPage(
+  tags$head(tags$script(HTML(JScode))), 
+  tags$head(tags$script('
+                  var dimension = [0, 0];
+                        $(document).on("shiny:connected", function(e) {
+                        dimension[0] = window.innerWidth;
+                        dimension[1] = window.innerHeight;
+                        Shiny.onInputChange("dimension", dimension);
+                        });
+                        $(window).resize(function(e) {
+                        dimension[0] = window.innerWidth;
+                        dimension[1] = window.innerHeight;
+                        Shiny.onInputChange("dimension", dimension);
+                        });
+                        ')),
   tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"), 
   div(
     id = "container", 
@@ -661,7 +682,20 @@ server <- function(input, output, session) {
 
   output$sampleMap1 <- renderLeaflet({ map <- myMap_reval() })
   output$sampleMap2 <- renderLeaflet({ map <- myMap_reval() })
+  
+  values <- reactiveValues(labelFontSize = 12, plotHeight = 400)
 
+  observeEvent(input$dimension, {
+    if(input$dimension[1] >= 2000){
+      values$labelFontSize <<- 25
+      values$plotHeight <<- 800
+    }
+    else{
+      values$labelFontSize <<- 12
+      values$plotHeight <<- 400
+    }
+  })
+  
   #show about page
   observeEvent(input$aboutButton, {
     showModal(
@@ -849,17 +883,17 @@ server <- function(input, output, session) {
     ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state2Select))
     
     output$parcoordchart1<-renderPlotly({
-      getParCoordChart(chart1Data(), input$chartBySelect)
+      getParCoordChart(chart1Data(), input$chartBySelect, values$labelFontSize, values$plotHeight)
     })
     output$countpercent1<-renderPlotly({
-      getMagnitudeChart(chart1Data(), input$chartBySelect)
+      getMagnitudeChart(chart1Data(), input$chartBySelect, values$labelFontSize, values$plotHeight)
     })
     
     output$parcoordchart2<-renderPlotly({
-      getParCoordChart(chart2Data(), input$chartBySelect)
+      getParCoordChart(chart2Data(), input$chartBySelect, values$labelFontSize, values$plotHeight)
     })
     output$countpercent2<-renderPlotly({
-      getMagnitudeChart(chart2Data(), input$chartBySelect)
+      getMagnitudeChart(chart2Data(), input$chartBySelect, values$labelFontSize, values$plotHeight)
     })
     output$table1 = DT::renderDataTable({
       getTable(chart1Data(), input$chartBySelect)
@@ -891,11 +925,13 @@ server <- function(input, output, session) {
     if(nrow(county1Data()) > 0) {
       lines <- getStateGeoJson(input$state1Select)
       mergedData <- merge(lines, county1Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
+
       numerics <- as.numeric(county1Data()[[colorby()]])
       uniques <- unique(numerics)
       domain <- unique(c(uniques, unique(as.numeric(county2Data()[[colorby()]]))))
       palette <- getPalette(input$sampleMap1_groups[1])
       quantiles <- colorQuantile(palette, domain, n = min(7, length(domain)))
+
       
       minlat <- min(c(county1Data()$slat, county1Data()$elat))
       minlon <- min(c(county1Data()$slon, county1Data()$elon))
@@ -936,6 +972,7 @@ server <- function(input, output, session) {
     print(paste(Sys.time(), "Observing 2", colorby(), widthby()))
     
     if(nrow(county2Data()) > 0) {
+
       lines <- getStateGeoJson(input$state2Select)
       mergedData <- merge(lines, county2Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
       numerics <- as.numeric(county2Data()[[colorby()]])
@@ -943,6 +980,7 @@ server <- function(input, output, session) {
       domain <- unique(c(uniques, unique(as.numeric(county1Data()[[colorby()]]))))
       palette <- getPalette(input$sampleMap2_groups[1])
       quantiles <- colorQuantile(palette, domain, n = min(7, length(domain)))
+
       
       minlat <- min(c(county2Data()$slat, county2Data()$elat))
       minlon <- min(c(county2Data()$slon, county2Data()$elon))
@@ -972,6 +1010,7 @@ server <- function(input, output, session) {
       ) %>% flyToBounds(minlon, minlat, maxlon, maxlat)
       
       prev2$id <- mergedData$tornadoId
+      
     }
     else if (length(prev2$id) != 0) {
       leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev2$id)
