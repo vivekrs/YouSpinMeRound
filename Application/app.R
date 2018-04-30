@@ -179,7 +179,7 @@ distanceGroups <- function(isMetric) {
   return(values)
 }
 distanceGroupDf <- function(isMetric) {
-  dgdf <- data.frame(distanceGroups(isMetric), c(0:8))
+  dgdf <- data.frame(distanceGroups(isMetric), c(0:69))
   colnames(dgdf) <- c('DistanceName', 'DistanceNumber')
   return(dgdf)
 }
@@ -276,12 +276,13 @@ createColorButtonGroup <- function(filter_id) {
 }
 
 getMagnitudeChart<- function(df, chartBy) {
+  print(df$DistanceName)
   x<-switch (chartBy, 
              'Year' = 'yr', 
-             'month' = 'mo', 
-             'hour' = 'hr', 
-             'dist' = 'chidist', 
-             'county' = 'county'
+             'Month' = 'mo', 
+             'Hour' = 'HourName', 
+             'Distance from Chicago' = 'DistanceName', 
+             'County' = 'name'
   )
   
   # yrcount<-subset(data, st=='IL') %>% count(yr, mag) %>% group_by(yr) %>% mutate(percent = n/sum(n))
@@ -307,24 +308,44 @@ getMagnitudeChart<- function(df, chartBy) {
         ))
   )
   
-  return(plot_ly(df, type = 'bar', x = ~get(x), y = ~count, marker = list(color = ~as.numeric(df$mag), showscale = TRUE, colorbar=list(tickmode='array', tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))))) %>%
+  return(plot_ly(df, type = 'bar', x = df[[x]], y = ~count, marker = list(color = ~as.numeric(df$mag), showscale = TRUE, colorbar=list(tickmode='array', tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))))) %>%
            layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus))
 }
 
 getParCoordChart<-function(df, chartBy) {
-  x<-switch (chartBy, 
-             'Year' = 'yr', 
-             'month' = 'mo', 
-             'hour' = 'hr', 
-             'dist' = 'chidist', 
-             'county' = 'county'
+  switch (chartBy, 
+             'Year' = {
+               x<-'yr'
+               vals<-as.numeric(unique(df$yr))
+               text<-unique(df$yr)
+              }, 
+             'Month' = {
+               x<-'mo'
+               vals<-monthsDf$MonthNumber
+               text<-monthsDf$MonthName
+              }, 
+             'Hour' = {
+               x<-"hr"
+               vals<-as.numeric(unique(df$hr))
+               text<-unique(df$HourName)
+              }, 
+             'Distance from Chicago' = {
+               x<-'chidistgrp'
+               vals<-as.numeric(unique(df$chidistgrp))
+               text<-unique(df$DistanceName)
+              }, 
+             'County' = {
+               x<-'srno'
+               vals<-unique(df$srno)
+               text<-unique(df$name)
+             }
   )
   
   return(
     df %>% plot_ly(
       type = 'parcoords', 
       line = list(
-        color = ~ as.numeric(mag), 
+        color = ~as.numeric(mag), 
         showscale = T, 
         colorbar = list(
           tickmode = 'array', 
@@ -333,21 +354,67 @@ getParCoordChart<-function(df, chartBy) {
         )
       ), 
       dimensions = list(
-          list(label=chartBy, values=~get(x), range = c(~min(get(x)), ~max(get(x)))), 
+          list(label=chartBy, values=df[[x]], tickvals=vals, ticktext=text, range=c(min(as.numeric(df[[x]])), max(as.numeric(df[[x]])))),
           list(label='Magnitude', values=~as.numeric(mag), tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))), 
-          list(label='Injuries', values=~inj, range = c(~min(inj), ~max(inj))), 
-          list(label='Fatalities', values=~fat, range = c(~min(fat), ~max(fat))), 
-          list(label='Loss ($)', values=~dl, range = c(~min(dl), ~max(dl)))
+          list(label='Injuries', values=~inj), 
+          list(label='Fatalities', values=~fat), 
+          list(label='Loss ($)', values=~dl)
   )))
 }
 
-getChartData <- function(data, x){
+getChartData <- function(data, x, isMetric, is24Hour, state){
+  if(x =='fips'){
+    datasepcounties<-separate_rows(data,fips, sep = '::')
+    datasepcounties$fips<-gsub(':','', datasepcounties$fips)
+    topcounties<-head(count(datasepcounties, fips, sort = T), 10)
+    topcounties$srno <- 1:nrow(topcounties)
+    datasepcounties<-semi_join(datasepcounties, topcounties, by='fips')
+    data<-datasepcounties
+    print(dplyr::select(topcounties, fips, srno))
+  }
+  
   result <- data %>% group_by_at(c(x, 'mag')) %>% summarise(
     fat = sum(fat), 
     inj = sum(inj), 
     dl = sum(dollarloss, na.rm = TRUE), 
     count = n()
   ) %>% group_by_at(x) %>% mutate(percent = count * 100 / sum(count))
+  
+  switch (x,
+          'hr' = {
+            result<-merge(
+              result,
+              hoursDf(is24Hour),
+              by.x = 'hr',
+              by.y = 'HourNumber',
+              all = TRUE
+            )
+          },
+          'chidistgrp' = {
+            result<-merge(
+              result,
+              distanceGroupDf(isMetric),
+              by.x = 'chidistgrp',
+              by.y = 'DistanceNumber',
+              all.x = TRUE
+            )
+          },
+          'fips' = {
+            result<-merge(
+              result,
+              subset(counties, st==state),
+              by.x = 'fips',
+              by.y = 'ctf',
+              all.x = TRUE
+            )
+            result<-merge(
+              result,
+              dplyr::select(topcounties, fips, srno),
+              by = 'fips',
+              all.x = TRUE
+            )
+          }
+  )
   
   return(result)
 }
@@ -726,10 +793,10 @@ server <- function(input, output, session) {
       input$chartBySelect, 
       "Year" = "yr", 
       "Month" = "mo", 
-      "Hour" = "hr"#, 
-      #"Distance from Chicago" =, 
-      #"County"
-    )))
+      "Hour" = "hr", 
+      "Distance from Chicago" = 'chidistgrp', 
+      "County" = 'fips'
+    ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state1Select)
     
     state2Data <- subset(plotData, stf == input$state2Select)
     output$state2Count <- renderText(paste(nrow(state2Data), "records"))
@@ -742,11 +809,10 @@ server <- function(input, output, session) {
       input$chartBySelect, 
       "Year" = "yr", 
       "Month" = "mo", 
-      "Hour" = "hr"#, 
-      #"Distance from Chicago" =, 
-      #"County"
-    )))
-    
+      "Hour" = "hr", 
+      "Distance from Chicago" = 'chidistgrp',
+      "County" = 'fips'
+    ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state2Select)
     output$parcoordchart1<-renderPlotly({
       getParCoordChart(chart1Data(), input$chartBySelect)
     })
