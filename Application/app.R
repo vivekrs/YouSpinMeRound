@@ -327,9 +327,9 @@ getMagnitudeChart<- function(df, chartBy, fontSize, plotHeight) {
                                  tickvals=as.numeric(sort(unique(df$mag))), 
                                  ticktext=sort(unique(df$mag)))
                   )) %>%
-           layout(yaxis = list(title = 'value'), barmode='stack', updatemenus = updatemenus, 
+           layout(barmode='stack', updatemenus = updatemenus, 
                   paper_bgcolor='#262626', plot_bgcolor='#262626',
-                  xaxis = list(title = 'Year', color = '#c7c7c7'), yaxis = list(title = '', color = '#c7c7c7')) %>% 
+                  xaxis = list(title = chartBy, color = '#c7c7c7'), yaxis = list(title = '', color = '#c7c7c7')) %>% 
            layout(height = plotHeight,font = list(size = fontSize, color = '#c7c7c7') ))
 }
 
@@ -712,7 +712,7 @@ server <- function(input, output, session) {
   observeEvent(input$dimension, {
     if(input$dimension[1] >= 2000){
       values$labelFontSize <<- 25
-      values$plotHeight <<- 800
+      values$plotHeight <<- 700
     }
     else{
       values$labelFontSize <<- 12
@@ -1047,7 +1047,7 @@ server <- function(input, output, session) {
       }
     }
     else if (length(prev2$id) != 0) {
-      leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev2$id)
+      leafletProxy("sampleMap2", session) %>% removeShape(layerId = prev2$id)
       prev2$id <- vector()
     }
   })
