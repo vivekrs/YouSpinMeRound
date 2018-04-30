@@ -298,7 +298,7 @@ getMagnitudeChart<- function(df, chartBy) {
              args = list("y", list(df$count)), # put it in a list
              label = "Show Count"), 
         list(method = "restyle", 
-             args = list("y", list(df$percent)), # put it in a list
+             args = list("y", list(df$percent*100)), # put it in a list
              label = "Show Percent"), 
         list(method = "restyle", 
              args = list("y", list(df$fat)), # put it in a list
@@ -341,7 +341,7 @@ getParCoordChart<-function(df, chartBy) {
              'County' = {
                x<-'srno'
                vals<-unique(df$srno)
-               text<-unique(df$name)
+               text<-as.character(unique(df$name))
              }
   )
   
@@ -349,7 +349,9 @@ getParCoordChart<-function(df, chartBy) {
     df %>% plot_ly(
       type = 'parcoords', 
       line = list(
-        color = ~as.numeric(mag), 
+        color = ~as.numeric(mag),
+        # colorscale='[[0, "rgb(50,50,255)", [1, "rgb(50,50,50)"]]',
+        colorscale = 'YlGnBu',
         showscale = T, 
         colorbar = list(
           tickmode = 'array', 
@@ -358,7 +360,7 @@ getParCoordChart<-function(df, chartBy) {
         )
       ), 
       dimensions = list(
-          list(label=chartBy, values=df[[x]], tickvals=vals, ticktext=text, range=c(min(as.numeric(df[[x]])), max(as.numeric(df[[x]])))),
+          list(label=chartBy, values=df[[x]], tickvals=vals, ticktext=text),
           list(label='Magnitude', values=~as.numeric(mag), tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))), 
           list(label='Injuries', values=~inj), 
           list(label='Fatalities', values=~fat), 
@@ -374,7 +376,6 @@ getChartData <- function(data, x, isMetric, is24Hour, state){
     topcounties$srno <- 1:nrow(topcounties)
     datasepcounties<-semi_join(datasepcounties, topcounties, by='fips')
     data<-datasepcounties
-    print(dplyr::select(topcounties, fips, srno))
   }
   
   result <- data %>% group_by_at(c(x, 'mag')) %>% summarise(
@@ -382,7 +383,7 @@ getChartData <- function(data, x, isMetric, is24Hour, state){
     inj = sum(inj), 
     dl = sum(dollarloss, na.rm = TRUE), 
     count = n()
-  ) %>% group_by_at(x) %>% mutate(percent = count * 100 / sum(count))
+  ) %>% group_by_at(x) %>% mutate(percent = count / sum(count))
   
   switch (x,
           'hr' = {
@@ -406,7 +407,7 @@ getChartData <- function(data, x, isMetric, is24Hour, state){
           'fips' = {
             result<-merge(
               result,
-              subset(counties, st==state),
+              subset(counties, stf==state),
               by.x = 'fips',
               by.y = 'ctf',
               all.x = TRUE
@@ -417,6 +418,7 @@ getChartData <- function(data, x, isMetric, is24Hour, state){
               by = 'fips',
               all.x = TRUE
             )
+            
           }
   )
   
@@ -424,8 +426,27 @@ getChartData <- function(data, x, isMetric, is24Hour, state){
 }
 
 getTable<-function(df, chartBy) {
-  colnames(df)<-c(chartBy, 'Magnitude', 'Fatalities', 'Injuries', 'Loss ($)', 'Count', 'Percent(per year)')
-  return(datatable(df, rownames= FALSE, options = list(scrollY = '100%')))
+  switch (chartBy,
+    'Month' =  {
+      df<-merge(df, monthsDf, by.x='mo', by.y='MonthNumber', all.x=T)
+      df<-df[c(8,2,3,4,5,6,7)]
+    },
+    'Hour' = {
+      df<-df[c(8,2,3,4,5,6,7)]
+    },
+    'Distance from Chicago' = {
+      df<-df[c(8,2,3,4,5,6,7)]
+    },
+    'County' = {
+      df<-df[c(11,2,3,4,5,6,7)]
+    }
+  )
+  colnames(df)<-c(chartBy, 'Magnitude', 'Fatalities', 'Injuries', 'Loss', 'Count', 'Percent(per year)')
+  return(
+    datatable(df, rownames= FALSE, options = list(scrollY = '100%'))%>%
+      formatPercentage('Percent(per year)', 2) %>% 
+      formatCurrency('Loss', '$')
+  )
 }
 
 print(paste(Sys.time(), "Initializing UI"))
@@ -795,16 +816,15 @@ server <- function(input, output, session) {
       print(paste(Sys.time(), "Updating County 1 Data"))
       county1Data(newCountyData)
       output$county1Count <- renderText(paste(nrow(county1Data()), "records"))
-        
-      chart1Data(getChartData(county1Data(), switch(
-        input$chartBySelect, 
-        "Year" = "yr", 
-        "Month" = "mo", 
+    }
+    chart1Data(getChartData(county1Data(), switch(
+      input$chartBySelect, 
+      "Year" = "yr", 
+      "Month" = "mo", 
       "Hour" = "hr", 
       "Distance from Chicago" = 'chidistgrp', 
       "County" = 'fips'
     ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state1Select))
-    }
     
     state2Data <- subset(plotData, stf == input$state2Select)
     output$state2Count <- renderText(paste(nrow(state2Data), "records"))
@@ -815,16 +835,17 @@ server <- function(input, output, session) {
       print(paste(Sys.time(), "Updating County 2 Data"))
       county2Data(newCountyData)
       output$county2Count <- renderText(paste(nrow(county2Data()), "records"))
-      
-      chart2Data(getChartData(county2Data(), switch(
-        input$chartBySelect, 
-        "Year" = "yr", 
-        "Month" = "mo", 
+    }
+    
+    chart2Data(getChartData(county2Data(), switch(
+      input$chartBySelect, 
+      "Year" = "yr", 
+      "Month" = "mo", 
       "Hour" = "hr", 
       "Distance from Chicago" = 'chidistgrp',
       "County" = 'fips'
     ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state2Select))
-    }
+    
     output$parcoordchart1<-renderPlotly({
       getParCoordChart(chart1Data(), input$chartBySelect)
     })
