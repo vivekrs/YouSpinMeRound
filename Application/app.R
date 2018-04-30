@@ -256,7 +256,7 @@ createButtonGroup <- function(filter_id) {
       # animation = 'pulse', 
       icon_on = icon("bars", lib = "font-awesome"), 
       icon_off = icon("bars", lib = "font-awesome"), 
-      status_on = "primary", status_off = "default", 
+      status_on = "warning", status_off = "default", 
       shape = "square", outline = TRUE
     ), 
     bsTooltip(paste(filter_id, "Width", sep=""), title = "Apply_Width", placement = "bottom", trigger = "hover", options = NULL), 
@@ -265,7 +265,7 @@ createButtonGroup <- function(filter_id) {
       label_on = "", label_off="", 
       icon_on = icon("tint"), 
       icon_off = icon("tint"), 
-      status_on = "primary", status_off = "default", 
+      status_on = "warning", status_off = "default", 
       shape = "round", outline = TRUE, value = value
     ), 
     bsTooltip(paste(filter_id, "Color", sep=""), title = "Apply_Color", placement = "bottom", trigger = "hover", options = NULL)
@@ -279,13 +279,12 @@ createColorButtonGroup <- function(filter_id) {
         label_on = "", label_off="", 
         icon_on = icon("tint"), 
         icon_off = icon("tint"), 
-        status_on = "primary", status_off = "default", 
+        status_on = "warning", status_off = "default", 
         shape = "round", outline = TRUE
       ), 
       bsTooltip(paste(filter_id, "Color", sep=""), title = "Apply_Color", placement = "bottom", trigger = "hover", options = NULL)
       )
 }
-
 
 getMagnitudeChart<- function(df, chartBy, fontSize, plotHeight) {
 

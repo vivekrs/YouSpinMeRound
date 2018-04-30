@@ -253,6 +253,9 @@ div#table1 tbody tr, div#table2 tbody tr{
     padding: 0 1em;
     line-height: 2px;
   }
+  .material-switch {
+	margin-top: 4em;
+  }
   #about {
     font-size: 35px;
   }
