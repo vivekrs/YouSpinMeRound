@@ -20,6 +20,7 @@ highContrastPalette <- c('#ffd59b','#ffa474','#f47461','#db4551','#b81b34','#8b0
 satellitePalette <- c('#FFE0B2','#FFCC80','#FFA726','#FB8C00','#F57C00','#E65100','#702800')
 
 getPalette <- function(layer){
+  print(paste(Sys.time(), "getPalette", layer))
   if(is.null(layer)) return(darkPalette)
   
   palette <- switch(
@@ -59,6 +60,15 @@ getUsCounties <- function() {
   return(us_counties)
 }
 
+stateGeoJsons <- list()
+getStateGeoJson <- function(stf) {
+  key <- as.character(stf)
+  if(is.null(stateGeoJsons[[key]])) {
+    stateGeoJsons[[key]] <<- rgdal::readOGR(paste0("data/GeoJson/", key, ".geojson"))
+  }
+  return(stateGeoJsons[[key]])
+}
+
 us_states <- NULL
 states_popup <- NULL
 getUsStates <- function() {
@@ -79,6 +89,7 @@ pick <- c()
 #helper function to get ctf and stf from map input
 getStfCtfFromMap <- function(id, state = FALSE)
 {
+  print(paste(Sys.time(), "getStfCtfFromMap", id))
   string <- sub(".*US", "", id)
   code <- list(stf = -1, ctf = -1)
   
@@ -89,15 +100,6 @@ getStfCtfFromMap <- function(id, state = FALSE)
     code$ctf<-as.numeric(substr(string, 3, 5))
   }
   return (code)
-}
-
-draw_tracks <- function(map, df, heatmap, group )
-{
-  if(!heatmap & df$stf!=-1) { 
-    #lines <- rgdal::readOGR(paste0("data/GeoJson/", df$stf, ".geojson"))
-    map <- map %>% addPolygons( data = lines )
-  }
-  return (map)
 }
 
 # function to create foundational map
@@ -623,11 +625,11 @@ server <- function(input, output, session) {
   widthby <- reactiveVal("fat")
   heatmapby <- reactiveVal("inj")
   
-  county1Data <- reactiveVal(NULL)
-  county2Data <- reactiveVal(NULL)
+  county1Data <- reactiveVal(data.frame())
+  county2Data <- reactiveVal(data.frame())
 
-  chart1Data <- reactiveVal(NULL)
-  chart2Data <- reactiveVal(NULL)
+  chart1Data <- reactiveVal(data.frame())
+  chart2Data <- reactiveVal(data.frame())
 
   myMap_reval <- reactiveVal(foundational.map("inj"))
   group <- list(id=vector())
@@ -784,35 +786,43 @@ server <- function(input, output, session) {
     
     state1Data <- subset(plotData, stf == input$state1Select)
     output$state1Count <- renderText(paste(nrow(state1Data), "records"))
-    county1Data(
-      if (input$county1Select == 0) state1Data else
-      subset(state1Data, grepl(paste0(":", input$county1Select, ":"), fips, fixed = TRUE)))
-    output$county1Count <- renderText(paste(nrow(county1Data()), "records"))
+    newCountyData <- if (input$county1Select == 0) state1Data else
+      subset(state1Data, grepl(paste0(":", input$county1Select, ":"), fips, fixed = TRUE))
     
-    chart1Data(getChartData(county1Data(), switch(
-      input$chartBySelect, 
-      "Year" = "yr", 
-      "Month" = "mo", 
+    if(!identical(county1Data(), newCountyData)) {
+      print(paste(Sys.time(), "Updating County 1 Data"))
+      county1Data(newCountyData)
+      output$county1Count <- renderText(paste(nrow(county1Data()), "records"))
+        
+      chart1Data(getChartData(county1Data(), switch(
+        input$chartBySelect, 
+        "Year" = "yr", 
+        "Month" = "mo", 
       "Hour" = "hr", 
       "Distance from Chicago" = 'chidistgrp', 
       "County" = 'fips'
     ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state1Select)
+    }
     
     state2Data <- subset(plotData, stf == input$state2Select)
     output$state2Count <- renderText(paste(nrow(state2Data), "records"))
-    county2Data(
-      if (input$county2Select == 0) state2Data else
-      subset(state2Data, grepl(paste0(":", input$county2Select, ":"), fips, fixed = TRUE)))
-    output$county2Count <- renderText(paste(nrow(county2Data()), "records"))
+    newCountyData <- if (input$county2Select == 0) state2Data else
+      subset(state2Data, grepl(paste0(":", input$county2Select, ":"), fips, fixed = TRUE))
     
-    chart2Data(getChartData(county2Data(), switch(
-      input$chartBySelect, 
-      "Year" = "yr", 
-      "Month" = "mo", 
+    if(!identical(county2Data(), newCountyData)) {
+      print(paste(Sys.time(), "Updating County 2 Data"))
+      county2Data(newCountyData)
+      output$county2Count <- renderText(paste(nrow(county2Data()), "records"))
+      
+      chart2Data(getChartData(county2Data(), switch(
+        input$chartBySelect, 
+        "Year" = "yr", 
+        "Month" = "mo", 
       "Hour" = "hr", 
       "Distance from Chicago" = 'chidistgrp',
       "County" = 'fips'
     ), input$measurementRadio == "Metric", input$hourRadio == "24 hr", input$state2Select)
+    }
     output$parcoordchart1<-renderPlotly({
       getParCoordChart(chart1Data(), input$chartBySelect)
     })
@@ -851,16 +861,16 @@ server <- function(input, output, session) {
   })
   
   observe({
-    print("Observing 1")
+    print(paste(Sys.time(), "Observing 1"))
     
     if (length(prev1$id) != 0)
       leafletProxy("sampleMap1", session) %>% removeShape(layerId = prev1$id)
     
     if(nrow(county1Data()) > 0) {
-      lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state1Select, ".geojson"))
+      lines <- getStateGeoJson(input$state1Select)
       mergedData <- merge(lines, county1Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
       uniques <- unique(chart1Data()[[colorby()]])
-      domain <- c(uniques, unique(chart2Data()[[colorby()]]))
+      domain <- unique(c(uniques, unique(chart2Data()[[colorby()]])))
       if(length(domain) == 1) 
         domain <- c(domain, Inf)
       quantiles <- colorQuantile(
@@ -885,16 +895,16 @@ server <- function(input, output, session) {
   })
   
   observe({
-    print("Observing 2")
+    print(paste(Sys.time(), "Observing 2"))
     
     if (length(prev2$id) != 0)
       leafletProxy("sampleMap2", session) %>% removeShape(layerId = prev2$id)
     
     if(nrow(county2Data()) > 0) {
-      lines <- rgdal::readOGR(paste0("data/GeoJson/", input$state2Select, ".geojson"))
+      lines <- getStateGeoJson(input$state2Select)
       mergedData <- merge(lines, county2Data(), by.x = "tornadoId",  by.y = "id", all.x = FALSE)
       uniques <- unique(chart2Data()[[colorby()]])
-      domain <- c(uniques, unique(chart1Data()[[colorby()]]))
+      domain <- unique(c(uniques, unique(chart1Data()[[colorby()]])))
       if(length(domain) == 1) 
         domain <- c(domain, Inf)
       quantiles <- colorQuantile(
