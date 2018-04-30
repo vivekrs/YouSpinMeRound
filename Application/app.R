@@ -299,19 +299,19 @@ getMagnitudeChart<- function(df, chartBy, fontSize, plotHeight) {
     list(
       buttons = list(
         list(method = "restyle", 
-             args = list("y", list(df$count)), # put it in a list
+             args = list("y", list(as.numeric(df$count))), # put it in a list
              label = "Show Count"), 
         list(method = "restyle", 
-             args = list("y", list(df$percent*100)), # put it in a list
+             args = list("y", list(as.numeric(df$percent)*100)), # put it in a list
              label = "Show Percent"), 
         list(method = "restyle", 
-             args = list("y", list(df$fat)), # put it in a list
+             args = list("y", list(as.numeric(df$fat))), # put it in a list
              label = "Show Fatalities"), 
         list(method = "restyle", 
-             args = list("y", list(df$inj)), # put it in a list
+             args = list("y", list(as.numeric(df$inj))), # put it in a list
              label = "Show Injuries"), 
         list(method = "restyle", 
-             args = list("y", list(df$dl)), # put it in a list
+             args = list("y", list(as.numeric(df$dl))), # put it in a list
              label = "Show Loss")
         ))
   )
