@@ -424,3 +424,93 @@ table a, #comments a{background-color:inherit;}
 	.hoc.split{max-width:none; width:100%;}
 	.split section{float:none; width:100%; padding:10% 5%;}
 }
+
+#mainImg{
+	width: 1000px;
+	height: 308px;
+}
+
+#stateCountyModeImg{
+	width: 500px;
+	height: 604px;
+	text-align: center;
+	margin: 0 auto;
+}
+
+#topLevelFilters01Img{
+	width: 400px;
+	height: 217px;
+	text-align: center;
+	margin: 0 auto;
+	/*float: left;*/
+}
+
+#topLevelFilters02Img{
+	margin-top: 10px;
+	width: 400px;
+	height: 217px;
+	text-align: center;
+	margin: 0 auto;
+	padding-top: 10px;
+	/*float: right;*/
+}
+/*#floatImgCaption{*/
+	/*display: block;*/
+/*}*/
+
+#parallelCoordImg{
+	width: 800px;
+	height: 450px;
+	text-align: center;
+	margin: 0 auto;
+}
+
+#barChartImg{
+	width: 800px;
+	height: 458px;
+	text-align: center;
+	margin: 0 auto;
+}
+
+#tableImg{
+	padding-top: 10px;
+	width: 800px;
+	height: 526px;
+	text-align: center;
+	margin: 0 auto;
+}
+
+#colorWidthByImg{
+	margin: 0 auto;
+	text-align: center;
+}
+
+#aboutImg{
+	width: 1000px;
+	height: 296px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+#preferenceImg{
+	width: 200px;
+	height: 128px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+#mapTypesImg{
+	width: 1000px;
+	height: 376px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.figCaption{
+	text-align: center;
+	font-size: 12px;
+}
+
+.subTitles{
+	color: #fb8c00;
+}
