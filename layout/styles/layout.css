@@ -514,3 +514,7 @@ table a, #comments a{background-color:inherit;}
 .subTitles{
 	color: #fb8c00;
 }
+
+#insights img {
+	margin: 10px;
+}
