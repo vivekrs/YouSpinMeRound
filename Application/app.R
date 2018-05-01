@@ -13,7 +13,7 @@ library(tidyr)
 library(htmltools)
 
 labelFontSize <- 12
-plotHeight <- 400
+plotHeight <- 700
 
 print(paste(Sys.time(), "Init"))
 colorByArray <- c('magnitudeFilterColor', 'widthFilterColor', 'lengthFilterColor', 'lossFilterColor', 'distanceFilterColor', 'injuriesFilterColor', 'fatalitiesFilterColor')
@@ -708,7 +708,7 @@ server <- function(input, output, session) {
   output$sampleMap1 <- renderLeaflet({ map <- myMap_reval() })
   output$sampleMap2 <- renderLeaflet({ map <- myMap_reval() })
   
-  values <- reactiveValues(labelFontSize = 12, plotHeight = 400)
+  values <- reactiveValues(labelFontSize = 12, plotHeight = 700)
 
   observeEvent(input$dimension, {
     if(input$dimension[1] >= 2000){
@@ -717,7 +717,7 @@ server <- function(input, output, session) {
     }
     else{
       values$labelFontSize <<- 12
-      values$plotHeight <<- 400
+      values$plotHeight <<- 700
     }
   })
   
