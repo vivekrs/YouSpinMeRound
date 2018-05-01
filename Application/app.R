@@ -378,11 +378,12 @@ getParCoordChart<-function(df, chartBy, fontSize, plotHeight) {
       ),
       labelfont = list(color='White'),
       dimensions = list(
-          list(label=chartBy, values=df[[x]], tickvals=vals, ticktext=text),
-          list(label='Magnitude', values=~as.numeric(mag), tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))), 
-          list(label='Injuries', values=~inj), 
-          list(label='Fatalities', values=~fat), 
-          list(label='Loss ($)', values=~dl)
+        list(label='Injuries', values=~inj), 
+        list(label='Fatalities', values=~fat), 
+        list(label='Loss ($)', values=~dl),
+        list(label='Count', values=~count), 
+        list(label='Magnitude', values=~as.numeric(mag), tickvals=as.numeric(sort(unique(df$mag))), ticktext=sort(unique(df$mag))), 
+        list(label=chartBy, values=df[[x]], tickvals=vals, ticktext=text)
   )) %>% layout(height = plotHeight, font = list(size = fontSize, color = '#c7c7c7')))
 }
 
