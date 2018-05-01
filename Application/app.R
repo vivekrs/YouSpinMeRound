@@ -330,7 +330,7 @@ getMagnitudeChart<- function(df, chartBy, fontSize, plotHeight) {
            layout(barmode='stack', updatemenus = updatemenus, 
                   paper_bgcolor='#262626', plot_bgcolor='#262626',
                   xaxis = list(title = chartBy, color = '#c7c7c7'), yaxis = list(title = '', color = '#c7c7c7')) %>% 
-           layout(height = plotHeight,font = list(size = fontSize, color = '#c7c7c7') ))
+           layout(height = plotHeight,font = list(size = fontSize, color = '#c7c7c7'), margin = list(b = 150, pad = 4) ))
 }
 
 getParCoordChart<-function(df, chartBy, fontSize, plotHeight) {
@@ -616,11 +616,11 @@ ui <- fluidPage(
           id='chartbox1', 
           tabPanel(
             'Injuries, Fatalities and Loss', 
-            plotlyOutput('parcoordchart1')
+            plotlyOutput('parcoordchart1', height = "100%")
           ), 
           tabPanel(
             'Number of Tornadoes', 
-            plotlyOutput('countpercent1')
+            plotlyOutput('countpercent1', height = "100%")
           ), 
           tabPanel(
             'Table', 
@@ -750,7 +750,7 @@ server <- function(input, output, session) {
     updateSliderInput(session, "lengthSlider", label = paste0("Length (", label, ")"), max = maxValue, value = c(0, maxValue))
     
     maxValue <- max(if(input$measurementRadio == "Imperial") data$chidist else data$chidistkm)
-    updateSliderInput(session, "distanceSlider", label = paste0("Dist. to Chicao (", label, ")"), max = maxValue, value = c(0, maxValue))
+    updateSliderInput(session, "distanceSlider", label = paste0("Dist. to Chicago (", label, ")"), max = maxValue, value = c(0, maxValue))
   })
   
   observeEvent(input$state1Select, {
