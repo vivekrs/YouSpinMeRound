@@ -274,4 +274,7 @@ div#table1 tbody tr, div#table2 tbody tr{
   #mapTwo .leaflet-control-layers-base {
     padding: 15px;
   }
+  #shiny-modal-wrapper {
+    color: #333;
+  }
 }

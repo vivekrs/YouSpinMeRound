@@ -733,6 +733,8 @@ server <- function(input, output, session) {
         different states in USA. Additionally, users can filter data by the tornado width, length, injuries, fatalities and loss. Moreover, users
         can also choose the time frame(year, month, hour) for which they want to see the tornado data."), 
         hr(), 
+        a(href="https://vrevan2.github.io/YouSpinMeRound/", target = "_blank", "Link to the website"),
+        hr(), 
         h5("Team: R You Shiny"), 
         p("Amey Barapatre | Sai Phaltankar | Jaspreet Kaur Sohal | Vivek R. Shivaprabhu"), 
         easyClose = TRUE, size = "l"
